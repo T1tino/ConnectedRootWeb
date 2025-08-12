@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="UTF-8" standalone="no"?>
+<svg viewBox="0 0 300 300" xmlns="http://www.w3.org/2000/svg">
+  <path d="M110 220 L190 220 L180 280 L120 280 Z" fill="#C87137" stroke="#8B4513" stroke-width="2" />
+  <ellipse cx="150" cy="220" rx="40" ry="10" fill="#5D4037" stroke="#3E2723" stroke-width="1" />
+  <path d="M150 220 C150 220, 150 180, 150 140" stroke="#2E7D32" stroke-width="4" fill="none" />
+  <path d="M150 180 C150 180, 130 160, 110 150" stroke="#2E7D32" stroke-width="3" fill="none" />
+  <path d="M150 160 C150 160, 170 140, 190 135" stroke="#2E7D32" stroke-width="3" fill="none" />
+  <path d="M150 140 C120 120, 100 140, 130 160" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M150 140 C180 120, 200 140, 170 160" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M110 150 C90 140, 80 160, 100 170" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M120 155 C100 140, 80 150, 110 175" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M190 135 C210 125, 220 145, 200 155" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M180 140 C200 125, 220 135, 190 160" fill="#4CAF50" stroke="#2E7D32" stroke-width="1" />
+  <path d="M150 140 C130 110, 100 120, 140 145" fill="#81C784" stroke="#2E7D32" stroke-width="1" />
+  <path d="M150 140 C170 110, 200 120, 160 145" fill="#81C784" stroke="#2E7D32" stroke-width="1" />
+  <path d="M150 140 C150 100, 180 100, 150 130" fill="#81C784" stroke="#2E7D32" stroke-width="1" />
+  <path d="M130 145 C135 140, 140 135, 145 142" stroke="#2E7D32" stroke-width="0.5" fill="none" />
+  <path d="M170 145 C165 140, 160 135, 155 142" stroke="#2E7D32" stroke-width="0.5" fill="none" />
+  <path d="M150 125 C155 115, 160 110, 153 120" stroke="#2E7D32" stroke-width="0.5" fill="none" />
+  <circle cx="110" cy="150" r="3" fill="#AED581" />
+  <circle cx="190" cy="135" r="3" fill="#AED581" />
+  <circle cx="150" cy="140" r="4" fill="#AED581" />
+  <ellipse cx="150" cy="282" rx="45" ry="6" fill="rgba(0,0,0,0.2)" />
+</svg>
