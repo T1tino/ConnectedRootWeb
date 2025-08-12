@@ -1,0 +1,369 @@
+@model ConnectedRoot.ViewModels.UsuarioPaginadoViewModel
+
+@{
+    ViewData["Title"] = "Lista de Usuarios";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <strong><i class="fas fa-users">Gestión de Usuarios</i></strong> 
+    </h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Crear Nuevo Usuario
+    </a>
+</div>
+
+<!-- Mensajes de feedback -->
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.Success))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @ViewBag.Success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Panel de Filtros -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+            <i class="fas fa-filter"></i> Filtros de Búsqueda
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="row g-3">
+                <!-- Búsqueda por texto -->
+                <div class="col-md-4">
+                    <label for="busquedaTexto" class="form-label">Buscar</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="busquedaTexto" 
+                           name="busquedaTexto" 
+                           value="@Model.BusquedaTexto" 
+                           placeholder="Nombre, apellidos o correo...">
+                </div>
+                
+                <!-- Filtro por rol -->
+<div class="col-md-3">
+    <label for="filtroRol" class="form-label">Rol</label>
+    <select class="form-select" id="filtroRol" name="filtroRol">
+        @foreach (var rol in Model.RolesDisponibles)
+        {
+            @if (Model.FiltroRol == rol)
+            {
+                <option value="@rol" selected>@rol</option>
+            }
+            else
+            {
+                <option value="@rol">@rol</option>
+            }
+        }
+    </select>
+</div>
+                
+                <!-- Filtro por estado -->
+                <div class="col-md-3">
+                    <label for="filtroEstado" class="form-label">Estado</label>
+                    <select class="form-select" id="filtroEstado" name="filtroEstado">
+                        @foreach (var estado in Model.EstadosDisponibles)
+                        {
+                            <option value="@estado" selected="@(Model.FiltroEstado == estado)">@estado</option>
+                        }
+                    </select>
+                </div>
+                
+                <!-- Botones -->
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100" role="group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search">Filtrar</i> 
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times">Limpiar</i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Contenido principal -->
+@if (Model.TotalUsuarios == 0)
+{
+    @if (string.IsNullOrEmpty(Model.BusquedaTexto) && Model.FiltroRol == "Todos" && Model.FiltroEstado == "Todos")
+    {
+        <!-- No hay usuarios en absoluto -->
+        <div class="text-center py-5">
+            <div class="alert alert-info border-0 shadow-sm">
+                <i class="fas fa-database fa-3x text-info mb-3"></i>
+                <h4>¡Conexión exitosa! 🎉</h4>
+                <p class="mb-3">MongoDB está conectado correctamente, pero no hay usuarios registrados aún.</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Crear el primer usuario
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- No hay resultados para la búsqueda -->
+        <div class="text-center py-5">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                <h4>No se encontraron resultados</h4>
+                <p class="mb-3">No hay usuarios que coincidan con los filtros aplicados.</p>
+                <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <div class="card shadow-sm">
+        <div class="card-header bg-light">
+            <div class="d-flex justify-content-between align-items-center">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-list"></i> Lista de Usuarios
+                </h5>
+                <span class="badge bg-primary fs-6">@Model.TotalUsuarios usuario(s)</span>
+            </div>
+        </div>
+        <div class="card-body p-0">
+            <div class="table-responsive">
+                <table class="table table-hover mb-0">
+                    <thead class="table-light">
+                        <tr>
+                            <th scope="col">
+                                <i class="fas fa-user"></i> Usuario
+                            </th>
+                            <th scope="col">
+                                <i class="fas fa-envelope"></i> Correo
+                            </th>
+                            <th scope="col">
+                                <i class="fas fa-tag"></i> Rol
+                            </th>
+                            <th scope="col" class="text-center">
+                                <i class="fas fa-toggle-on"></i> Estado
+                            </th>
+                            <th scope="col" class="text-center">
+                                <i class="fas fa-cogs"></i> Acciones
+                            </th>
+                        </tr>
+                    </thead>
+                    <tbody>
+                        @foreach (var usuario in Model.Usuarios)
+                        {
+                            <tr class="@(usuario.Activo ? "" : "table-secondary")">
+                                <td>
+                                    <div class="d-flex align-items-center">
+                                        <div>
+                                            @usuario.Nombre @usuario.PrimerApellido
+                                            @if (!string.IsNullOrEmpty(usuario.SegundoApellido))
+                                            {
+                                                <span>@usuario.SegundoApellido</span>
+                                            }
+                                        </div>
+                                    </div>
+                                </td>
+                                <td>
+                                    <span class="text-muted">@usuario.Correo</span>
+                                </td>
+                                <td>
+                                    @switch (usuario.Rol.ToString().ToLower())
+{
+    case "administrador":
+        <span class="badge bg-danger">
+            <i class="fas fa-crown"></i> Administrador
+        </span>
+        break;
+    case "agricultor":
+        <span class="badge bg-success">
+            <i class="fas fa-seedling"></i> Agricultor
+        </span>
+        break;
+    default:
+        <span class="badge bg-secondary">
+            <i class="fas fa-question"></i> @usuario.Rol
+        </span>
+        break;
+}
+                                </td>
+                                <td class="text-center">
+                                    @if (usuario.Activo)
+                                    {
+                                        <span class="badge bg-success">
+                                            <i class="fas fa-check"></i> Activo
+                                        </span>
+                                    }
+                                    else
+                                    {
+                                        <span class="badge bg-danger">
+                                            <i class="fas fa-times"></i> Inactivo
+                                        </span>
+                                    }
+                                </td>
+                                <td class="text-center">
+                                    <div class="btn-group" role="group" aria-label="Acciones de usuario">
+                                        <!-- Botón Details -->
+                                        <a asp-action="Details" asp-route-id="@usuario.Id" 
+                                           class="btn btn-sm btn-outline-info"
+                                           title="Ver detalles de @usuario.Nombre" 
+                                           data-bs-toggle="tooltip"
+                                           data-bs-placement="top">
+                                            <i class="fas fa-eye"></i>
+                                            <span class="d-none d-lg-inline ms-1">Ver</span>
+                                        </a>
+
+                                        <!-- Botón Edit -->
+                                        <a asp-action="Edit" asp-route-id="@usuario.Id" 
+                                           class="btn btn-sm btn-outline-warning"
+                                           title="Editar @usuario.Nombre" 
+                                           data-bs-toggle="tooltip" 
+                                           data-bs-placement="top">
+                                            <i class="fas fa-edit"></i>
+                                            <span class="d-none d-lg-inline ms-1">Editar</span>
+                                        </a>
+
+                                        <!-- Botón Toggle Status -->
+                                        <form asp-action="ToggleStatus" asp-route-id="@usuario.Id" method="post" class="d-inline">
+                                            @Html.AntiForgeryToken()
+                                            <button type="submit" 
+                                                    class="btn btn-sm @(usuario.Activo ? "btn-outline-danger" : "btn-outline-success")"
+                                                    title="@(usuario.Activo ? "Desactivar" : "Activar") @usuario.Nombre"
+                                                    data-bs-toggle="tooltip"
+                                                    data-bs-placement="top"
+                                                    onclick="return confirm('@(usuario.Activo ? "¿Desactivar" : "¿Activar") este usuario?')">
+                                                <i class="fas fa-@(usuario.Activo ? "ban" : "check")"></i>
+                                                <span class="d-none d-lg-inline ms-1">@(usuario.Activo ? "Desactivar" : "Activar")</span>
+                                            </button>
+                                        </form>
+                                    </div>
+                                </td>
+                            </tr>
+                        }
+                    </tbody>
+                </table>
+            </div>
+        </div>
+        
+        <!-- Footer con información y paginación -->
+        <div class="card-footer bg-light">
+            <div class="row align-items-center">
+                <div class="col-md-6">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Mostrando @Model.UsuarioDesde-@Model.UsuarioHasta de @Model.TotalUsuarios usuario(s) |
+                        Activos: @Model.Usuarios.Count(u => u.Activo) |
+                        Inactivos: @Model.Usuarios.Count(u => !u.Activo)
+                    </small>
+                </div>
+                <div class="col-md-6">
+                    @if (Model.TotalPaginas > 1)
+                    {
+                        <nav aria-label="Paginación de usuarios">
+                            <ul class="pagination pagination-sm justify-content-end mb-0">
+                                <!-- Primera página -->
+                                @if (Model.TienePaginaAnterior)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroRol = Model.FiltroRol, filtroEstado = Model.FiltroEstado, pagina = 1 })">
+                                            <i class="fas fa-angle-double-left"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroRol = Model.FiltroRol, filtroEstado = Model.FiltroEstado, pagina = Model.PaginaActual - 1 })">
+                                            <i class="fas fa-angle-left"></i>
+                                        </a>
+                                    </li>
+                                }
+
+                                <!-- Páginas numéricas -->
+                                @{
+                                    int paginaInicio = Math.Max(1, Model.PaginaActual - 2);
+                                    int paginaFin = Math.Min(Model.TotalPaginas, Model.PaginaActual + 2);
+                                }
+
+                                @for (int i = paginaInicio; i <= paginaFin; i++)
+                                {
+                                    <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+                                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroRol = Model.FiltroRol, filtroEstado = Model.FiltroEstado, pagina = i })">
+                                            @i
+                                        </a>
+                                    </li>
+                                }
+
+                                <!-- Última página -->
+                                @if (Model.TienePaginaSiguiente)
+                                {
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroRol = Model.FiltroRol, filtroEstado = Model.FiltroEstado, pagina = Model.PaginaActual + 1 })">
+                                            <i class="fas fa-angle-right"></i>
+                                        </a>
+                                    </li>
+                                    <li class="page-item">
+                                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroRol = Model.FiltroRol, filtroEstado = Model.FiltroEstado, pagina = Model.TotalPaginas })">
+                                            <i class="fas fa-angle-double-right"></i>
+                                        </a>
+                                    </li>
+                                }
+                            </ul>
+                        </nav>
+                    }
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+@section Scripts {
+    <script src="~/js/usuario.js"></script>
+    <script>
+        // Inicializar tooltips de Bootstrap
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+        
+        // Auto-submit del formulario cuando cambian los filtros (opcional)
+        document.getElementById('filtroRol').addEventListener('change', function() {
+            // this.form.submit(); // Descomenta si quieres que se aplique automáticamente
+        });
+        
+        document.getElementById('filtroEstado').addEventListener('change', function() {
+            // this.form.submit(); // Descomenta si quieres que se aplique automáticamente
+        });
+    </script>
+}

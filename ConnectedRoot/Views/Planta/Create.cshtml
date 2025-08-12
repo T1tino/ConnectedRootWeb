@@ -1,0 +1,411 @@
+@model ConnectedRoot.Models.Planta
+
+@{
+    ViewData["Title"] = "Registrar Nueva Planta";
+}
+
+<h2>🌱 Registrar Nueva Planta</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">
+        @ViewBag.Error
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.NombreZona))
+{
+    <div class="alert alert-info">
+        <strong>Registrando planta en la zona:</strong> @ViewBag.NombreZona
+    </div>
+}
+
+<form asp-action="Create" method="post">
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-success text-white">
+                    <h5>Información de la Planta</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label asp-for="ZonaId" class="form-label">Zona de Cultivo</label>
+                        <select asp-for="ZonaId" class="form-control" required>
+                            <option value="">Seleccionar zona...</option>
+                            @foreach (var zona in ViewBag.ZonasConHuerto)
+                            {
+                                @if (ViewBag.ZonaSeleccionada?.ToString() == zona.ZonaId)
+                                {
+                                    <option value="@zona.ZonaId" selected>@zona.Display</option>
+                                }
+                                else
+                                {
+                                    <option value="@zona.ZonaId">@zona.Display</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreComun" class="form-label">Nombre Común</label>
+                                <input asp-for="NombreComun" class="form-control" placeholder="Ej: Tomate cherry" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreCientifico" class="form-label">Nombre Científico</label>
+                                <input asp-for="NombreCientifico" class="form-control" placeholder="Ej: Solanum lycopersicum" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="TipoCultivo" class="form-label">Tipo de Cultivo</label>
+                                <select asp-for="TipoCultivo" class="form-control" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="Hortaliza">🥕 Hortaliza</option>
+                                    <option value="Frutal">🍎 Frutal</option>
+                                    <option value="Aromática">🌿 Aromática</option>
+                                    <option value="Legumbre">🫘 Legumbre</option>
+                                    <option value="Cereal">🌾 Cereal</option>
+                                    <option value="Ornamental">🌺 Ornamental</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Estado" class="form-label">Estado Actual</label>
+                                <select asp-for="Estado" class="form-control" required>
+                                    <option value="Germinando" selected>🌱 Germinando</option>
+                                    <option value="Crecimiento">🌿 Crecimiento</option>
+                                    <option value="Floración">🌸 Floración</option>
+                                    <option value="Fructificación">🍅 Fructificación</option>
+                                    <option value="Cosecha">🧺 Cosecha</option>
+                                    <option value="Finalizado">✅ Finalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="FechaSiembra" class="form-label">Fecha de Siembra</label>
+                        <input asp-for="FechaSiembra" type="date" class="form-control" value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Notas" class="form-label">Notas de Cuidado</label>
+                        <textarea asp-for="Notas" class="form-control" rows="4" placeholder="Anota observaciones sobre la planta: ubicación específica, cuidados especiales, tratamientos aplicados, etc."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6>💡 Guía de Cuidados</h6>
+                </div>
+                <div class="card-body">
+                    <div id="cuidados-hortaliza" class="d-none">
+                        <strong>🥕 Hortalizas:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Regular, evitar encharcamiento</li>
+                            <li>☀️ Sol: 6-8 horas diarias</li>
+                            <li>🌡️ Temperatura: 18-25°C</li>
+                            <li>🧪 pH: 6.0-7.0</li>
+                            <li>🌱 Cosecha: 60-90 días</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="cuidados-frutal" class="d-none">
+                        <strong>🍎 Frutales:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Profundo pero espaciado</li>
+                            <li>☀️ Sol: 8+ horas diarias</li>
+                            <li>🌡️ Temperatura: Variable según especie</li>
+                            <li>✂️ Poda: Según temporada</li>
+                            <li>🍎 Cosecha: Según madurez</li>
+                        </ul>
+                    </div>
+                    
+                    <div id="cuidados-aromática" class="d-none">
+                        <strong>🌿 Aromáticas:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Moderado, no excesivo</li>
+                            <li>☀️ Sol: 4-6 horas diarias</li>
+                            <li>🌡️ Temperatura: 15-25°C</li>
+                            <li>✂️ Cosecha: Hojas jóvenes</li>
+                            <li>🌿 Poda: Estimula crecimiento</li>
+                        </ul>
+                    </div>
+
+                    <div id="cuidados-legumbre" class="d-none">
+                        <strong>🫘 Legumbres:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Moderado durante crecimiento</li>
+                            <li>☀️ Sol: 6+ horas diarias</li>
+                            <li>🌡️ Temperatura: 15-22°C</li>
+                            <li>🌱 Germinación: 7-10 días</li>
+                            <li>🧪 pH: 6.5-7.0</li>
+                        </ul>
+                    </div>
+
+                    <div id="cuidados-cereal" class="d-none">
+                        <strong>🌾 Cereales:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Abundante en germinación</li>
+                            <li>☀️ Sol: Pleno sol</li>
+                            <li>🌡️ Temperatura: 16-24°C</li>
+                            <li>🌱 Ciclo: 90-120 días</li>
+                            <li>🧪 pH: 6.0-7.5</li>
+                        </ul>
+                    </div>
+
+                    <div id="cuidados-ornamental" class="d-none">
+                        <strong>🌺 Ornamentales:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>💧 Riego: Según especie</li>
+                            <li>☀️ Sol: Variable</li>
+                            <li>🌡️ Temperatura: 15-25°C</li>
+                            <li>✂️ Poda: Para forma y floración</li>
+                            <li>🌸 Floración: Según estación</li>
+                        </ul>
+                    </div>
+                    
+                    <div class="alert alert-success mt-3">
+                        <small><strong>📋 Tip:</strong> Mantén un registro fotográfico del crecimiento para monitorear el progreso.</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-warning">
+                    <h6>📅 Cronograma Típico</h6>
+                </div>
+                <div class="card-body">
+                    <div id="cronograma-hortaliza" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 5-10 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 30-45 días</p>
+                        <p><strong>🌸 Floración:</strong> 45-60 días</p>
+                        <p><strong>🧺 Cosecha:</strong> 60-90 días</p>
+                    </div>
+
+                    <div id="cronograma-frutal" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 10-21 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 1-2 años</p>
+                        <p><strong>🌸 Floración:</strong> 2-3 años</p>
+                        <p><strong>🍎 Primera cosecha:</strong> 3-5 años</p>
+                    </div>
+
+                    <div id="cronograma-aromática" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 7-14 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 20-30 días</p>
+                        <p><strong>🌿 Primera cosecha:</strong> 30-45 días</p>
+                        <p><strong>🌸 Floración:</strong> 60-90 días</p>
+                    </div>
+
+                    <div id="cronograma-legumbre" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 7-10 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 40-60 días</p>
+                        <p><strong>🌸 Floración:</strong> 60-80 días</p>
+                        <p><strong>🫘 Cosecha:</strong> 90-120 días</p>
+                    </div>
+
+                    <div id="cronograma-cereal" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 7-14 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 60-90 días</p>
+                        <p><strong>🌾 Espigado:</strong> 90-110 días</p>
+                        <p><strong>🧺 Cosecha:</strong> 120-150 días</p>
+                    </div>
+
+                    <div id="cronograma-ornamental" class="cronograma-content d-none">
+                        <p><strong>🌱 Germinación:</strong> 10-21 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 30-60 días</p>
+                        <p><strong>🌸 Floración:</strong> 60-120 días</p>
+                        <p><strong>🌺 Floración plena:</strong> Variable</p>
+                    </div>
+
+                    <div id="cronograma-default" class="cronograma-content">
+                        <p><strong>🌱 Germinación:</strong> 7-14 días</p>
+                        <p><strong>🌿 Crecimiento:</strong> 30-45 días</p>
+                        <p><strong>🌸 Floración:</strong> 45-60 días</p>
+                        <p><strong>🧺 Cosecha:</strong> 60-90 días</p>
+                        <small class="text-muted">*Los tiempos varían según la especie</small>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header bg-secondary text-white">
+                    <h6>🌱 Plantas Sugeridas</h6>
+                </div>
+                <div class="card-body">
+                    <div id="sugerencias-hortaliza" class="sugerencias-content d-none">
+                        <strong>Fáciles para principiantes:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>🥬 Lechuga</li>
+                            <li>🥕 Rábanos</li>
+                            <li>🌿 Espinacas</li>
+                            <li>🥒 Pepinos</li>
+                            <li>🍅 Tomates cherry</li>
+                        </ul>
+                    </div>
+
+                    <div id="sugerencias-aromática" class="sugerencias-content d-none">
+                        <strong>Aromáticas populares:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>🌿 Albahaca</li>
+                            <li>🌿 Perejil</li>
+                            <li>🌿 Cilantro</li>
+                            <li>🌿 Orégano</li>
+                            <li>🌿 Menta</li>
+                        </ul>
+                    </div>
+
+                    <div id="sugerencias-frutal" class="sugerencias-content d-none">
+                        <strong>Frutales para macetas:</strong>
+                        <ul class="list-unstyled mt-2">
+                            <li>🍓 Fresas</li>
+                            <li>🫐 Arándanos</li>
+                            <li>🍋 Limones (enanos)</li>
+                            <li>🍇 Uvas</li>
+                            <li>🥝 Kiwi</li>
+                        </ul>
+                    </div>
+
+                    <div class="alert alert-info mt-3">
+                        <small><strong>💡 Consejo:</strong> Comienza con plantas fáciles de cuidar si eres principiante.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group mt-3">
+        <input type="submit" value="🌱 Registrar Planta" class="btn btn-success btn-lg" />
+        <a asp-action="Index" class="btn btn-secondary btn-lg">Cancelar</a>
+    </div>
+</form>
+
+<script>
+// Mostrar cuidados específicos según el tipo seleccionado
+document.getElementById('TipoCultivo').addEventListener('change', function() {
+    // Ocultar todas las guías
+    document.querySelectorAll('[id^="cuidados-"]').forEach(el => el.classList.add('d-none'));
+    document.querySelectorAll('.cronograma-content').forEach(el => el.classList.add('d-none'));
+    document.querySelectorAll('.sugerencias-content').forEach(el => el.classList.add('d-none'));
+    
+    // Mostrar la guía correspondiente
+    const tipo = this.value.toLowerCase();
+    
+    // Mostrar cuidados específicos
+    const elementoCuidados = document.getElementById('cuidados-' + tipo);
+    if (elementoCuidados) {
+        elementoCuidados.classList.remove('d-none');
+    }
+    
+    // Mostrar cronograma específico
+    const elementoCronograma = document.getElementById('cronograma-' + tipo);
+    if (elementoCronograma) {
+        elementoCronograma.classList.remove('d-none');
+    } else {
+        // Mostrar cronograma por defecto si no hay específico
+        document.getElementById('cronograma-default').classList.remove('d-none');
+    }
+    
+    // Mostrar sugerencias específicas
+    const elementoSugerencias = document.getElementById('sugerencias-' + tipo);
+    if (elementoSugerencias) {
+        elementoSugerencias.classList.remove('d-none');
+    }
+});
+
+// Autocompletar nombres comunes basados en el tipo
+document.getElementById('TipoCultivo').addEventListener('change', function() {
+    const nombreComunInput = document.getElementById('NombreComun');
+    const tipo = this.value;
+    
+    // Limpiar placeholder
+    nombreComunInput.placeholder = "Nombre de la planta...";
+    
+    // Establecer placeholder específico según tipo
+    switch(tipo) {
+        case 'Hortaliza':
+            nombreComunInput.placeholder = "Ej: Tomate, Lechuga, Zanahoria...";
+            break;
+        case 'Frutal':
+            nombreComunInput.placeholder = "Ej: Fresa, Limón, Uva...";
+            break;
+        case 'Aromática':
+            nombreComunInput.placeholder = "Ej: Albahaca, Perejil, Cilantro...";
+            break;
+        case 'Legumbre':
+            nombreComunInput.placeholder = "Ej: Frijol, Garbanzo, Lenteja...";
+            break;
+        case 'Cereal':
+            nombreComunInput.placeholder = "Ej: Maíz, Trigo, Avena...";
+            break;
+        case 'Ornamental':
+            nombreComunInput.placeholder = "Ej: Rosa, Geranio, Petunia...";
+            break;
+    }
+});
+
+// Inicializar con cronograma por defecto
+document.addEventListener('DOMContentLoaded', function() {
+    document.getElementById('cronograma-default').classList.remove('d-none');
+});
+</script>
+
+<style>
+.card {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    border: none;
+}
+
+.card-header {
+    border-bottom: none;
+    font-weight: 600;
+}
+
+.form-label {
+    font-weight: 600;
+    color: #495057;
+}
+
+.alert {
+    border: none;
+    border-radius: 8px;
+}
+
+.btn {
+    border-radius: 6px;
+    font-weight: 500;
+}
+
+.btn-lg {
+    padding: 0.75rem 2rem;
+}
+
+ul.list-unstyled li {
+    padding: 2px 0;
+    font-size: 0.9rem;
+}
+
+#cronograma-default p, 
+.cronograma-content p {
+    margin-bottom: 8px;
+    font-size: 0.9rem;
+}
+
+.sugerencias-content li {
+    background-color: #f8f9fa;
+    padding: 4px 8px;
+    margin: 2px 0;
+    border-radius: 4px;
+}
+</style>

@@ -1,0 +1,214 @@
+/* ==============================================
+   LAYOUT BASE SIMPLE
+   ============================================== */
+
+/* Layout base */
+body {
+    background-color: #F8F9FA;
+    margin: 0;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: relative;
+}
+
+/* Contenedor principal para que footer quede abajo */
+main {
+    flex: 1;
+}
+
+/* ==============================================
+   HEADER
+   ============================================== */
+
+header {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+/* Logo en header */
+.logo-img {
+    width: 50px;
+    height: 50px;
+    background-color: rgba(255, 255, 255, 0.2);
+    border-radius: 50%;
+    padding: 8px;
+}
+
+/* ==============================================
+   SIDEBAR
+   ============================================== */
+
+/* Botón hamburguesa */
+.menu-toggle {
+    position: fixed;
+    top: 20px;
+    right: 20px;
+    z-index: 1001;
+    background: #198754;
+    color: white;
+    border: none;
+    padding: 12px;
+    border-radius: 8px;
+    cursor: pointer;
+    box-shadow: 0 2px 8px rgba(25, 135, 84, 0.3);
+    transition: all 0.3s ease;
+}
+
+.menu-toggle:hover {
+    background: #157347;
+    color: white;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 12px rgba(25, 135, 84, 0.4);
+}
+
+.menu-toggle svg {
+    width: 24px;
+    height: 24px;
+}
+
+/* Overlay para cerrar sidebar en móvil */
+.overlay {
+    position: fixed;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(0,0,0,0.3);
+    z-index: 999;
+    opacity: 0;
+    visibility: hidden;
+    transition: all 0.3s ease;
+}
+
+.sidebar-open .overlay {
+    opacity: 1;
+    visibility: visible;
+}
+
+/* Sidebar */
+.sidebar {
+    position: fixed;
+    top: 0;
+    right: -280px;
+    width: 280px;
+    height: 100vh;
+    background: white;
+    border-left: 1px solid #dee2e6;
+    z-index: 1000;
+    transition: transform 0.3s ease;
+    box-shadow: -2px 0 4px rgba(0,0,0,0.1);
+}
+
+.sidebar-open .sidebar {
+    transform: translateX(-280px);
+}
+
+/* Header de la sidebar */
+.sidebar-header {
+    padding: 30px 20px;
+    background: #198754;
+    border-bottom: 1px solid #157347;
+}
+
+.sidebar-title {
+    color: white;
+    font-size: 1.5rem;
+    font-weight: 600;
+    text-align: center;
+}
+
+/* Navegación */
+.sidebar-nav {
+    padding: 20px 0;
+}
+
+.nav-item {
+    display: flex;
+    align-items: center;
+    padding: 12px 20px;
+    color: #495057;
+    text-decoration: none;
+    font-size: 1rem;
+    font-weight: 500;
+    border-right: 3px solid transparent;
+    transition: all 0.3s ease;
+    position: relative;
+    overflow: hidden;
+}
+
+.nav-item i {
+    margin-right: 12px;
+    font-size: 1.2rem;
+    width: 20px;
+    text-align: center;
+}
+
+.nav-item::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    right: -100%;
+    width: 100%;
+    height: 100%;
+    background: rgba(25, 135, 84, 0.05);
+    transition: right 0.3s ease;
+}
+
+.nav-item:hover::before {
+    right: 0;
+}
+
+.nav-item:hover {
+    background: #f8f9fa;
+    border-right-color: #198754;
+    color: #198754;
+    transform: translateX(-3px);
+}
+
+.nav-item.active {
+    background: #d1e7dd;
+    border-right-color: #198754;
+    color: #198754;
+    font-weight: 600;
+}
+
+/* ==============================================
+   FOOTER
+   ============================================== */
+
+footer {
+    margin-top: auto;
+    position: relative;
+}
+
+/* ==============================================
+   RESPONSIVE
+   ============================================== */
+
+@media (min-width: 768px) {
+    .menu-toggle {
+        right: 20px;
+    }
+    
+    .sidebar-open main {
+        margin-right: 280px;
+    }
+}
+
+@media (max-width: 767px) {
+    .sidebar {
+        width: 100vw;
+        right: -100vw;
+    }
+    
+    .sidebar-open .sidebar {
+        transform: translateX(-100vw);
+    }
+    
+    .menu-toggle {
+        top: 15px;
+        right: 15px;
+    }
+}

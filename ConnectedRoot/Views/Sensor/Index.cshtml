@@ -1,0 +1,427 @@
+@model ConnectedRoot.ViewModels.SensorPaginadoViewModel
+
+@{
+    ViewData["Title"] = "Lista de Sensores IoT";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <strong><i class="fas fa-microchip"></i> Gestión de Sensores IoT</strong>
+    </h2>
+    <a asp-action="Create" class="btn btn-primary">
+        <i class="fas fa-plus"></i> Instalar Nuevo Sensor
+    </a>
+</div>
+
+<!-- Mensajes de feedback -->
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.Success))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @ViewBag.Success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Panel de Filtros -->
+<div class="card shadow-sm mb-4">
+    <div class="card-header bg-light">
+        <h6 class="card-title mb-0">
+            <i class="fas fa-filter"></i> Filtros de Búsqueda
+        </h6>
+    </div>
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="row g-5">
+                <!-- Búsqueda por texto -->
+                <div class="col-md-4">
+                    <label for="busquedaTexto" class="form-label">Buscar</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="busquedaTexto" 
+                           name="busquedaTexto" 
+                           value="@Model.BusquedaTexto" 
+                           placeholder="Tipo, modelo o descripción">
+                </div>
+                
+                <!-- Filtro por tipo de sensor -->
+                <div class="col-md-2">
+                    <label for="filtroTipoSensor" class="form-label">Tipo de Sensor</label>
+                    <select class="form-select" id="filtroTipoSensor" name="filtroTipoSensor">
+                        @foreach (var tipo in Model.TiposSensorDisponibles)
+                        {
+                            <option value="@tipo" selected="@(Model.FiltroTipoSensor == tipo)">
+                                @switch (tipo)
+                                {
+                                    case "Temperatura":
+                                        <text>🌡️ Temperatura</text>
+                                        break;
+                                    case "Humedad del Suelo":
+                                        <text>💧 Humedad del Suelo</text>
+                                        break;
+                                    case "Humedad Ambiental":
+                                        <text>🌫️ Humedad Ambiental</text>
+                                        break;
+                                    case "Luminosidad":
+                                        <text>☀️ Luminosidad</text>
+                                        break;
+                                    case "pH del Suelo":
+                                        <text>⚗️ pH del Suelo</text>
+                                        break;
+                                    case "Temperatura y Humedad":
+                                        <text>🌡️💧 Temperatura y Humedad</text>
+                                        break;
+                                    default:
+                                        @tipo
+                                        break;
+                                }
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por zona -->
+                <div class="col-md-2">
+                    <label for="filtroZona" class="form-label">Zona</label>
+                    <select class="form-select" id="filtroZona" name="filtroZona">
+                        @foreach (var zona in Model.ZonasDisponibles)
+                        {
+                            <option value="@zona.Key" selected="@(Model.FiltroZona == zona.Key)">@zona.Value</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por estado -->
+                <div class="col-md-2">
+                    <label for="filtroEstado" class="form-label">Estado</label>
+                    <select class="form-select" id="filtroEstado" name="filtroEstado">
+                        @foreach (var estado in Model.EstadosDisponibles)
+                        {
+                            <option value="@estado" selected="@(Model.FiltroEstado == estado)">@estado</option>
+                        }
+                    </select>
+                </div>
+                
+                <!-- Botones -->
+                <div class="col-md-2 d-flex align-items-end">
+                    <div class="btn-group w-100" role="group">
+                        <button type="submit" class="btn btn-primary">
+                            <i class="fas fa-search">Filtrar</i>
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary">
+                            <i class="fas fa-times">Limpiar</i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Contenido principal -->
+@if (Model.TotalSensores == 0)
+{
+    @if (string.IsNullOrEmpty(Model.BusquedaTexto) && Model.FiltroTipoSensor == "Todos" && 
+         Model.FiltroZona == "Todos" && Model.FiltroEstado == "Todos")
+    {
+        <!-- No hay sensores en absoluto -->
+        <div class="text-center py-5">
+            <div class="alert alert-info border-0 shadow-sm">
+                <i class="fas fa-microchip fa-3x text-info mb-3"></i>
+                <h4>¡Conexión exitosa! 🎉</h4>
+                <p class="mb-3">MongoDB está conectado correctamente, pero no hay sensores instalados aún.</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Instalar el primer sensor
+                </a>
+                <a asp-controller="Zona" asp-action="Index" class="btn btn-outline-secondary ms-2">
+                    <i class="fas fa-map-marked-alt"></i> Ver zonas
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- No hay resultados para la búsqueda -->
+        <div class="text-center py-5">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                <h4>No se encontraron resultados</h4>
+                <p class="mb-3">No hay sensores que coincidan con los filtros aplicados.</p>
+                <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <!-- Información de resultados -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="fas fa-list"></i> Lista de Sensores
+            <span class="badge bg-primary fs-6">@Model.TotalSensores sensor(es)</span>
+        </h5>
+        <small class="text-muted">
+            <i class="fas fa-info-circle"></i>
+            Mostrando @Model.SensorDesde-@Model.SensorHasta de @Model.TotalSensores sensor(es) |
+            Activos: @{var activosCount = 0; var inactivosCount = 0; foreach(var s in Model.Sensores) { if(s.Estado == "activo") activosCount++; else if(s.Estado == "inactivo") inactivosCount++; }} @activosCount |
+            Inactivos: @inactivosCount
+        </small>
+    </div>
+
+    <div class="row">
+        @foreach (var sensor in Model.Sensores)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm @(sensor.Estado == "activo" ? "" : "border-secondary")">
+                    <div class="card-header @(sensor.Estado == "activo" ? "bg-success" : "bg-secondary") text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">
+                                    @{
+                                        var tipoSensor = sensor.Tipo.ToLower();
+                                    }
+                                    @if (tipoSensor.Contains("temperatura"))
+                                    {
+                                        <i class="fas fa-thermometer-half"></i>
+                                    }
+                                    else if (tipoSensor.Contains("humedad"))
+                                    {
+                                        <i class="fas fa-tint"></i>
+                                    }
+                                    else if (tipoSensor.Contains("luminosidad"))
+                                    {
+                                        <i class="fas fa-sun"></i>
+                                    }
+                                    else if (tipoSensor.Contains("ph"))
+                                    {
+                                        <i class="fas fa-flask"></i>
+                                    }
+                                    else
+                                    {
+                                        <i class="fas fa-microchip"></i>
+                                    }
+                                    @sensor.Tipo
+                                </h6>
+                                <small class="text-white-50">@sensor.Modelo</small>
+                            </div>
+                            @{
+                                var estadoSensor = sensor.Estado;
+                            }
+                            @if (estadoSensor == "activo")
+                            {
+                                <span class="badge bg-light text-success">
+                                    <i class="fas fa-check"></i> Activo
+                                </span>
+                            }
+                            else if (estadoSensor == "mantenimiento")
+                            {
+                                <span class="badge bg-light text-warning">
+                                    <i class="fas fa-wrench"></i> Mantto
+                                </span>
+                            }
+                            else
+                            {
+                                <span class="badge bg-light text-danger">
+                                    <i class="fas fa-times"></i> Inactivo
+                                </span>
+                            }
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (sensor.Zona is not null)
+                        {
+                            <p class="card-text">
+                                <strong>📍 Zona:</strong><br>
+                                <small class="text-primary">@(sensor.Zona.NombreZona ?? "Sin nombre")</small>
+                                @if (sensor.Zona.Huerto is not null)
+                                {
+                                    <br><small class="text-muted">Huerto: @(sensor.Zona.Huerto.NombreHuerto ?? "Sin nombre")</small>
+                                }
+                            </p>
+                        }
+                        else if (!string.IsNullOrEmpty(sensor.ZonaId) && Model.NombresZonas.ContainsKey(sensor.ZonaId))
+                        {
+                            <p class="card-text">
+                                <strong>📍 Zona:</strong><br>
+                                <small class="text-primary">@Model.NombresZonas[sensor.ZonaId]</small>
+                            </p>
+                        }
+                        
+                        <p class="card-text">
+                            <strong>📅 Instalado:</strong><br>
+                            <small class="text-muted">@sensor.FechaInstalacion.ToString("dd/MM/yyyy")</small>
+                        </p>
+                        
+                        @if (!string.IsNullOrEmpty(sensor.Descripcion))
+                        {
+                            <p class="card-text">
+                                <strong>📝 Descripción:</strong><br>
+                                <small class="text-muted">
+                                    @{
+                                        var descripcion = sensor.Descripcion;
+                                        var descripcionCorta = descripcion.Length > 50 ? descripcion.Substring(0, 50) + "..." : descripcion;
+                                    }
+                                    @descripcionCorta
+                                </small>
+                            </p>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <!-- Botón Details -->
+                            <a asp-action="Details" asp-route-id="@sensor.Id" 
+                               class="btn btn-sm btn-outline-info"
+                               title="Ver detalles de @sensor.Tipo" 
+                               data-bs-toggle="tooltip">
+                                <i class="fas fa-eye"></i>
+                                <span class="d-none d-md-inline ms-1">Ver</span>
+                            </a>
+
+                            <!-- Botón Edit -->
+                            <a asp-action="Edit" asp-route-id="@sensor.Id" 
+                               class="btn btn-sm btn-outline-warning"
+                               title="Editar @sensor.Tipo" 
+                               data-bs-toggle="tooltip">
+                                <i class="fas fa-edit"></i>
+                                <span class="d-none d-md-inline ms-1">Editar</span>
+                            </a>
+
+                            <!-- Botón Toggle Status -->
+                            <form asp-action="ToggleStatus" asp-route-id="@sensor.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                @{
+                                    var esActivo = sensor.Estado == "activo";
+                                    var textoBoton = esActivo ? "Desactivar" : "Activar";
+                                    var claseBoton = esActivo ? "btn-outline-danger" : "btn-outline-success";
+                                    var icono = esActivo ? "ban" : "check";
+                                    var confirmMessage = esActivo ? "¿Desactivar este sensor?" : "¿Activar este sensor?";
+                                }
+                                <button type="submit" 
+                                        class="btn btn-sm @claseBoton"
+                                        title="@textoBoton sensor"
+                                        data-bs-toggle="tooltip"
+                                        onclick="return confirm('@confirmMessage')">
+                                    <i class="fas fa-@icono"></i>
+                                    <span class="d-none d-md-inline ms-1">@textoBoton</span>
+                                </button>
+                            </form>
+                        </div>
+                        
+                        <!-- Botón adicional para agregar lecturas -->
+                        <div class="mt-2">
+                            <a asp-controller="Lectura" asp-action="Create" asp-route-sensorId="@sensor.Id" 
+                               class="btn btn-sm btn-outline-primary w-100"
+                               title="Agregar lectura manual a @sensor.Tipo"
+                               data-bs-toggle="tooltip">
+                                <i class="fas fa-chart-line"></i> Agregar Lectura
+                            </a>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Paginación -->
+    @if (Model.TotalPaginas > 1)
+    {
+        <nav aria-label="Paginación de sensores" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Primera página -->
+                @if (Model.TienePaginaAnterior)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipoSensor = Model.FiltroTipoSensor, filtroZona = Model.FiltroZona, filtroEstado = Model.FiltroEstado, pagina = 1 })">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipoSensor = Model.FiltroTipoSensor, filtroZona = Model.FiltroZona, filtroEstado = Model.FiltroEstado, pagina = Model.PaginaActual - 1 })">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                }
+
+                <!-- Páginas numéricas -->
+                @{
+                    int paginaInicio = Math.Max(1, Model.PaginaActual - 2);
+                    int paginaFin = Math.Min(Model.TotalPaginas, Model.PaginaActual + 2);
+                }
+
+                @for (int i = paginaInicio; i <= paginaFin; i++)
+                {
+                    <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipoSensor = Model.FiltroTipoSensor, filtroZona = Model.FiltroZona, filtroEstado = Model.FiltroEstado, pagina = i })">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Última página -->
+                @if (Model.TienePaginaSiguiente)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipoSensor = Model.FiltroTipoSensor, filtroZona = Model.FiltroZona, filtroEstado = Model.FiltroEstado, pagina = Model.PaginaActual + 1 })">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipoSensor = Model.FiltroTipoSensor, filtroZona = Model.FiltroZona, filtroEstado = Model.FiltroEstado, pagina = Model.TotalPaginas })">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
+
+@section Scripts {
+    <script>
+        // Inicializar tooltips de Bootstrap
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+    </script>
+}

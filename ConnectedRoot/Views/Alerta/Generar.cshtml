@@ -1,0 +1,362 @@
+@{
+    ViewData["Title"] = "Generar Alertas Automáticas";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-sync"></i> Generar Alertas Automáticas
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-exclamation-triangle"></i> Alertas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Generar</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Resultado de la Generación -->
+        @if (ViewBag.TotalGeneradas != null)
+        {
+            <div class="card shadow-sm">
+                <div class="card-header @(ViewBag.TotalGeneradas > 0 ? "bg-warning" : "bg-success") text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-@(ViewBag.TotalGeneradas > 0 ? "exclamation-triangle" : "check-circle")"></i>
+                        Resultado de la Generación
+                    </h5>
+                </div>
+                <div class="card-body">
+                    @if (ViewBag.TotalGeneradas > 0)
+                    {
+                        <div class="alert alert-warning">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-bell"></i> ¡@ViewBag.TotalGeneradas alerta(s) generada(s)!
+                            </h6>
+                            <p class="mb-0">Se han detectado condiciones críticas en los sensores y se han creado alertas automáticamente.</p>
+                        </div>
+                        
+                        <h6 class="mt-4 mb-3">
+                            <i class="fas fa-list"></i> Alertas Generadas:
+                        </h6>
+                        
+                        @if (ViewBag.AlertasGeneradas != null)
+                        {
+                            <ul class="list-group">
+                                @foreach (var alerta in (List<string>)ViewBag.AlertasGeneradas)
+                                {
+                                    <li class="list-group-item d-flex align-items-center">
+                                        <i class="fas fa-exclamation-circle text-warning me-2"></i>
+                                        @alerta
+                                    </li>
+                                }
+                            </ul>
+                        }
+                        
+                        <div class="mt-4">
+                            <a asp-action="Index" asp-route-filtroEstado="Pendientes" class="btn btn-danger">
+                                <i class="fas fa-eye"></i> Ver Alertas Pendientes
+                            </a>
+                            <a asp-action="Index" class="btn btn-outline-primary ms-2">
+                                <i class="fas fa-list"></i> Ver Todas las Alertas
+                            </a>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="alert alert-success">
+                            <h6 class="alert-heading">
+                                <i class="fas fa-check-circle"></i> ¡Excelente! No se encontraron condiciones críticas
+                            </h6>
+                            <p class="mb-0">
+                                Todos los sensores están reportando valores dentro de los rangos normales. 
+                                El sistema continúa monitoreando automáticamente.
+                            </p>
+                        </div>
+                        
+                        <div class="text-center mt-4">
+                            <i class="fas fa-leaf text-success fa-3x mb-3"></i>
+                            <p class="text-muted">Tu sistema de agricultura IoT está funcionando perfectamente.</p>
+                        </div>
+                    }
+                </div>
+            </div>
+        }
+        else
+        {
+            <!-- Formulario para Generar -->
+            <div class="card shadow-sm">
+                <div class="card-header bg-primary text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-robot"></i> Análisis Automático de Sensores
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <p class="card-text">
+                        El sistema analizará las lecturas de los últimos sensores y generará alertas automáticamente 
+                        para cualquier condición crítica detectada.
+                    </p>
+                    
+                    <div class="alert alert-info">
+                        <h6 class="alert-heading">
+                            <i class="fas fa-info-circle"></i> ¿Qué condiciones se evalúan?
+                        </h6>
+                        <ul class="mb-0">
+                            <li><strong>Temperatura Alta:</strong> Valores superiores a 35°C</li>
+                            <li><strong>Humedad Baja:</strong> Valores inferiores al 30%</li>
+                            <li><strong>Sensores Desconectados:</strong> Sin lecturas en las últimas 4 horas</li>
+                            <li><strong>Valores Anómalos:</strong> Cambios drásticos entre lecturas</li>
+                        </ul>
+                    </div>
+                    
+                    <form asp-action="Generar" method="get">
+                        <div class="d-grid">
+                            <button type="submit" class="btn btn-warning btn-lg">
+                                <i class="fas fa-sync fa-spin"></i> Ejecutar Análisis Automático
+                            </button>
+                        </div>
+                    </form>
+                </div>
+            </div>
+        }
+
+        <!-- Estadísticas del Sistema -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Estado del Sistema de Monitoreo
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-md-3">
+                        <div class="card border-primary">
+                            <div class="card-body">
+                                <h4 class="text-primary">
+                                    <i class="fas fa-microchip"></i>
+                                    <span id="sensores-activos">--</span>
+                                </h4>
+                                <small class="text-muted">Sensores Activos</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-success">
+                            <div class="card-body">
+                                <h4 class="text-success">
+                                    <i class="fas fa-chart-line"></i>
+                                    <span id="lecturas-hoy">--</span>
+                                </h4>
+                                <small class="text-muted">Lecturas Hoy</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-warning">
+                            <div class="card-body">
+                                <h4 class="text-warning">
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    <span id="alertas-pendientes">--</span>
+                                </h4>
+                                <small class="text-muted">Alertas Pendientes</small>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="col-md-3">
+                        <div class="card border-info">
+                            <div class="card-body">
+                                <h4 class="text-info">
+                                    <i class="fas fa-clock"></i>
+                                    <span id="ultima-lectura">--</span>
+                                </h4>
+                                <small class="text-muted">Última Lectura</small>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-heartbeat"></i> Salud del Sistema
+                        </h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-success" role="progressbar" style="width: 85%" 
+                                 aria-valuenow="85" aria-valuemin="0" aria-valuemax="100">
+                                85%
+                            </div>
+                        </div>
+                        <small class="text-muted">Sistema operando normalmente</small>
+                    </div>
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-wifi"></i> Conectividad
+                        </h6>
+                        <div class="progress mb-2" style="height: 20px;">
+                            <div class="progress-bar bg-info" role="progressbar" style="width: 92%" 
+                                 aria-valuenow="92" aria-valuemin="0" aria-valuemax="100">
+                                92%
+                            </div>
+                        </div>
+                        <small class="text-muted">Sensores conectados correctamente</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Información sobre Generación Automática -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-robot"></i> Generación Automática
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>🤖 ¿Cómo funciona?</strong><br>
+                    El sistema analiza las lecturas de las últimas 2 horas buscando:
+                    <br><br>
+                    
+                    <strong>🌡️ Temperatura Crítica:</strong><br>
+                    • Alta: &gt; 35°C<br>
+                    • Baja: &lt; 5°C<br><br>
+                    
+                    <strong>💧 Humedad Crítica:</strong><br>
+                    • Baja: &lt; 30%<br>
+                    • Alta: &gt; 95%<br><br>
+                    
+                    <strong>📡 Conectividad:</strong><br>
+                    • Sensores sin datos &gt; 4h<br>
+                    • Fallos de comunicación<br><br>
+                    
+                    <strong>⚡ Frecuencia:</strong><br>
+                    Se recomienda ejecutar cada 6-12 horas o cuando se sospechen problemas.
+                </small>
+            </div>
+        </div>
+
+        <!-- Acciones Relacionadas -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-tools"></i> Acciones Relacionadas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Create" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Crear Alerta Manual
+                    </a>
+                    
+                    <a asp-action="Index" asp-route-filtroEstado="Pendientes" class="btn btn-outline-danger">
+                        <i class="fas fa-exclamation-triangle"></i> Ver Pendientes
+                    </a>
+                    
+                    <a asp-controller="Lectura" asp-action="Index" class="btn btn-outline-info">
+                        <i class="fas fa-chart-line"></i> Ver Lecturas Recientes
+                    </a>
+                    
+                    <a asp-controller="Sensor" asp-action="Index" class="btn btn-outline-success">
+                        <i class="fas fa-microchip"></i> Estado de Sensores
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a Alertas
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Historial de Generaciones -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Última Ejecución
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>📅 Fecha:</strong> No disponible<br>
+                    <strong>⏰ Hora:</strong> --:--<br>
+                    <strong>📊 Resultado:</strong> No ejecutado<br>
+                    <strong>🔢 Alertas:</strong> -- generadas<br><br>
+                    
+                    <em>Ejecuta el análisis para ver el historial aquí.</em>
+                </small>
+            </div>
+        </div>
+
+        <!-- Configuración Avanzada -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-cog"></i> Configuración
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>⚙️ Parámetros del Sistema:</strong><br>
+                    • Ventana de análisis: 2 horas<br>
+                    • Umbral temperatura: 35°C<br>
+                    • Umbral humedad: 30%<br>
+                    • Timeout sensores: 4 horas<br><br>
+                    
+                    <strong>🔄 Automatización:</strong><br>
+                    • Ejecución manual<br>
+                    • Sin programación automática<br>
+                    • Alertas por email: No configurado
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Simular carga de estadísticas del sistema
+        document.addEventListener('DOMContentLoaded', function() {
+            // Simular carga de datos (en producción esto vendría del servidor)
+            setTimeout(function() {
+                document.getElementById('sensores-activos').textContent = '12';
+                document.getElementById('lecturas-hoy').textContent = '156';
+                document.getElementById('alertas-pendientes').textContent = '3';
+                document.getElementById('ultima-lectura').textContent = '5 min';
+            }, 1000);
+        });
+
+        // Auto-refresh de estadísticas cada 30 segundos
+        setInterval(function() {
+            // En producción, hacer una llamada AJAX para actualizar las estadísticas
+            console.log('Actualizando estadísticas del sistema...');
+        }, 30000);
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 10000); // Más tiempo para que el usuario pueda leer los resultados
+    </script>
+}

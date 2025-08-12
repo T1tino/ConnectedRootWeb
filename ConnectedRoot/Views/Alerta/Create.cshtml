@@ -1,0 +1,435 @@
+@model ConnectedRoot.Models.Alerta
+
+@{
+    ViewData["Title"] = "Crear Alerta Manual";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-plus"></i> Crear Alerta Manual
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-exclamation-triangle"></i> Alertas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Crear</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.NombreZona))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i>
+        <strong>Creando alerta para la zona:</strong> @ViewBag.NombreZona
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div class="card">
+                <div class="card-header bg-danger text-white">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-exclamation-triangle"></i> Información de la Alerta
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="ZonaId" class="form-label">Zona Afectada <span class="text-danger">*</span></label>
+                                <select asp-for="ZonaId" class="form-select" required>
+                                    <option value="">-- Selecciona una zona --</option>
+                                    @if (ViewBag.ZonasConHuerto != null)
+                                    {
+                                        @foreach (var zona in ViewBag.ZonasConHuerto)
+                                        {
+                                            @if (ViewBag.ZonaSeleccionada?.ToString() == zona.ZonaId)
+                                            {
+                                                <option value="@zona.ZonaId" selected>@zona.Display</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@zona.ZonaId">@zona.Display</option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="ZonaId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-map-marked-alt"></i> 
+                                    Zona donde se detectó el problema.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Tipo" class="form-label">Tipo de Alerta <span class="text-danger">*</span></label>
+                                <select asp-for="Tipo" class="form-select" required>
+                                    <option value="">-- Selecciona el tipo --</option>
+                                    <option value="Temperatura Alta">🌡️ Temperatura Alta</option>
+                                    <option value="Temperatura Baja">🧊 Temperatura Baja</option>
+                                    <option value="Humedad Baja">💧 Humedad Baja</option>
+                                    <option value="Humedad Alta">🌊 Humedad Alta</option>
+                                    <option value="Sensor Desconectado">📡 Sensor Desconectado</option>
+                                    <option value="Plagas Detectadas">🐛 Plagas Detectadas</option>
+                                    <option value="Mantenimiento Requerido">🔧 Mantenimiento Requerido</option>
+                                    <option value="Otro">⚠️ Otro</option>
+                                </select>
+                                <span asp-validation-for="Tipo" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Estado" class="form-label">Estado <span class="text-danger">*</span></label>
+                                <select asp-for="Estado" class="form-select" required>
+                                    <option value="pendiente" selected>🚨 Pendiente</option>
+                                    <option value="resuelta">✅ Resuelta</option>
+                                </select>
+                                <span asp-validation-for="Estado" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="ValorRegistrado" class="form-label">Valor Registrado <span class="text-danger">*</span></label>
+                                <input asp-for="ValorRegistrado" type="number" step="0.01" class="form-control" 
+                                       placeholder="25.5" required />
+                                <span asp-validation-for="ValorRegistrado" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-tachometer-alt"></i> 
+                                    Valor que generó la alerta.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="UmbralMinimo" class="form-label">Umbral Mínimo</label>
+                                <input asp-for="UmbralMinimo" type="number" step="0.01" class="form-control" 
+                                       placeholder="15.0" />
+                                <span asp-validation-for="UmbralMinimo" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-4">
+                            <div class="form-group mb-3">
+                                <label asp-for="UmbralMaximo" class="form-label">Umbral Máximo</label>
+                                <input asp-for="UmbralMaximo" type="number" step="0.01" class="form-control" 
+                                       placeholder="35.0" />
+                                <span asp-validation-for="UmbralMaximo" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="ValorUmbralViolado" class="form-label">Valor del Umbral Violado</label>
+                                <input asp-for="ValorUmbralViolado" type="number" step="0.01" class="form-control" 
+                                       placeholder="35.0" />
+                                <span asp-validation-for="ValorUmbralViolado" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-exclamation"></i> 
+                                    Umbral específico que se superó.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="FechaHora" class="form-label">Fecha y Hora <span class="text-danger">*</span></label>
+                                <input asp-for="FechaHora" type="datetime-local" class="form-control" 
+                                       value="@DateTime.Now.ToString("yyyy-MM-ddTHH:mm")" required />
+                                <span asp-validation-for="FechaHora" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Mensaje" class="form-label">Mensaje de la Alerta <span class="text-danger">*</span></label>
+                                <textarea asp-for="Mensaje" class="form-control" rows="3" 
+                                         placeholder="Describe el problema y las acciones recomendadas..." required></textarea>
+                                <span asp-validation-for="Mensaje" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-edit"></i> 
+                                    Descripción detallada del problema y recomendaciones.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-check mb-3">
+                                <input asp-for="Enviada" class="form-check-input" type="checkbox" />
+                                <label asp-for="Enviada" class="form-check-label">Notificación enviada</label>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Limpiar formulario
+                    </button>
+                    <button type="submit" class="btn btn-danger">
+                        <i class="fas fa-save"></i> Crear Alerta
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header bg-warning">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Guía de Umbrales
+                </h6>
+            </div>
+            <div class="card-body">
+                <div id="guia-temperatura" class="d-none">
+                    <strong>🌡️ Temperatura:</strong>
+                    <ul class="list-unstyled mt-2">
+                        <li>🟢 Óptimo: 20-25°C</li>
+                        <li>🟡 Aceptable: 15-30°C</li>
+                        <li>🔴 Crítico: &lt;15°C o &gt;35°C</li>
+                    </ul>
+                </div>
+                
+                <div id="guia-humedad" class="d-none">
+                    <strong>💧 Humedad del Suelo:</strong>
+                    <ul class="list-unstyled mt-2">
+                        <li>🟢 Óptimo: 60-80%</li>
+                        <li>🟡 Seco: 40-60%</li>
+                        <li>🔴 Crítico: &lt;40% o &gt;90%</li>
+                    </ul>
+                </div>
+                
+                <div id="guia-sensor" class="d-none">
+                    <strong>📡 Sensor Desconectado:</strong>
+                    <ul class="list-unstyled mt-2">
+                        <li>⚠️ Sin lecturas por &gt;2 horas</li>
+                        <li>🔧 Verificar conectividad</li>
+                        <li>🔋 Revisar batería</li>
+                    </ul>
+                </div>
+                
+                <div class="alert alert-info mt-3">
+                    <small><strong>⚠️ Tip:</strong> Ajusta los umbrales según el tipo de cultivo y estación del año.</small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-map-marked-alt"></i> Zonas Disponibles
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var zonasConHuerto = ViewBag.ZonasConHuerto as IEnumerable<dynamic>;
+                }
+                @if (zonasConHuerto != null && zonasConHuerto.Any())
+                {
+                    <small class="text-muted">
+                        Hay <strong>@zonasConHuerto.Count() zona(s)</strong> disponible(s) para crear alertas.
+                    </small>
+                }
+                else
+                {
+                    <div class="alert alert-warning alert-sm">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <small>No hay zonas disponibles. 
+                        <a asp-controller="Zona" asp-action="Create">Crear una zona</a> primero.</small>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Tipos de Alerta
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>🌡️ Temperatura:</strong> Valores fuera del rango óptimo<br>
+                    <strong>💧 Humedad:</strong> Niveles críticos de humedad<br>
+                    <strong>📡 Sensor:</strong> Problemas de conectividad<br>
+                    <strong>🐛 Plagas:</strong> Detección de problemas fitosanitarios<br>
+                    <strong>🔧 Mantenimiento:</strong> Necesidad de intervención
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mostrar guía según el tipo seleccionado
+        document.getElementById('Tipo').addEventListener('change', function() {
+            // Ocultar todas las guías
+            document.querySelectorAll('[id^="guia-"]').forEach(el => el.classList.add('d-none'));
+            
+            // Mostrar la guía correspondiente y auto-completar umbrales
+            const tipo = this.value.toLowerCase();
+            if (tipo.includes('temperatura')) {
+                document.getElementById('guia-temperatura').classList.remove('d-none');
+                if (tipo.includes('alta')) {
+                    document.getElementById('UmbralMinimo').value = '15';
+                    document.getElementById('UmbralMaximo').value = '35';
+                    document.getElementById('ValorUmbralViolado').value = '35';
+                } else if (tipo.includes('baja')) {
+                    document.getElementById('UmbralMinimo').value = '15';
+                    document.getElementById('UmbralMaximo').value = '35';
+                    document.getElementById('ValorUmbralViolado').value = '15';
+                }
+            } else if (tipo.includes('humedad')) {
+                document.getElementById('guia-humedad').classList.remove('d-none');
+                if (tipo.includes('baja')) {
+                    document.getElementById('UmbralMinimo').value = '40';
+                    document.getElementById('UmbralMaximo').value = '90';
+                    document.getElementById('ValorUmbralViolado').value = '40';
+                } else if (tipo.includes('alta')) {
+                    document.getElementById('UmbralMinimo').value = '40';
+                    document.getElementById('UmbralMaximo').value = '90';
+                    document.getElementById('ValorUmbralViolado').value = '90';
+                }
+            } else if (tipo.includes('sensor')) {
+                document.getElementById('guia-sensor').classList.remove('d-none');
+            }
+        });
+
+        // Validación de umbrales
+        document.getElementById('UmbralMinimo').addEventListener('input', function() {
+            const min = parseFloat(this.value);
+            const max = parseFloat(document.getElementById('UmbralMaximo').value);
+            
+            if (!isNaN(min) && !isNaN(max) && min >= max) {
+                this.classList.add('is-invalid');
+                document.getElementById('UmbralMaximo').classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('UmbralMaximo').classList.remove('is-invalid');
+            }
+        });
+
+        document.getElementById('UmbralMaximo').addEventListener('input', function() {
+            const max = parseFloat(this.value);
+            const min = parseFloat(document.getElementById('UmbralMinimo').value);
+            
+            if (!isNaN(min) && !isNaN(max) && max <= min) {
+                this.classList.add('is-invalid');
+                document.getElementById('UmbralMinimo').classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                document.getElementById('UmbralMinimo').classList.remove('is-invalid');
+            }
+        });
+
+        // Auto-generar mensaje según el tipo
+        document.getElementById('Tipo').addEventListener('change', function() {
+            const tipo = this.value;
+            const mensajeTextarea = document.getElementById('Mensaje');
+            
+            if (!mensajeTextarea.value.trim()) {
+                let mensaje = '';
+                switch(tipo) {
+                    case 'Temperatura Alta':
+                        mensaje = 'Se ha detectado temperatura crítica elevada. Se recomienda aumentar ventilación o proporcionar sombra.';
+                        break;
+                    case 'Temperatura Baja':
+                        mensaje = 'Se ha detectado temperatura crítica baja. Se recomienda protección contra heladas.';
+                        break;
+                    case 'Humedad Baja':
+                        mensaje = 'Nivel de humedad crítico detectado. Las plantas necesitan riego urgente.';
+                        break;
+                    case 'Humedad Alta':
+                        mensaje = 'Exceso de humedad detectado. Revisar drenaje y ventilación.';
+                        break;
+                    case 'Sensor Desconectado':
+                        mensaje = 'Sensor sin comunicación. Verificar conectividad y estado del dispositivo.';
+                        break;
+                    case 'Plagas Detectadas':
+                        mensaje = 'Posible presencia de plagas. Inspección y tratamiento fitosanitario requerido.';
+                        break;
+                    case 'Mantenimiento Requerido':
+                        mensaje = 'Mantenimiento preventivo o correctivo necesario en la zona.';
+                        break;
+                }
+                if (mensaje) {
+                    mensajeTextarea.value = mensaje;
+                }
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de limpiar todos los campos?')) {
+                document.querySelector('form').reset();
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function(element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+                document.querySelectorAll('[id^="guia-"]').forEach(el => el.classList.add('d-none'));
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function() {
+            formChanged = true;
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function() {
+            formChanged = false;
+        });
+    </script>
+}

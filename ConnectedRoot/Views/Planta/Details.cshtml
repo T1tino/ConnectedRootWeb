@@ -1,0 +1,307 @@
+@model ConnectedRoot.Models.Planta
+
+@{
+    ViewData["Title"] = "Detalles de " + Model.NombreComun;
+    var diasDesdeSiembra = ViewBag.DiasDesdeSiembra ?? 0;
+    var estadoColor = Model.Estado switch
+    {
+        "Germinando" => "info",
+        "Crecimiento" => "success",
+        "Floración" => "warning",
+        "Cosecha" => "danger",
+        _ => "secondary"
+    };
+}
+
+<div class="d-flex justify-content-between align-items-center mb-3">
+    <h2>🌱 @Model.NombreComun</h2>
+    <div>
+        <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+            <i class="fas fa-edit"></i> Editar
+        </a>
+        <a asp-action="Index" asp-route-zonaId="@Model.ZonaId" class="btn btn-secondary">
+            <i class="fas fa-arrow-left"></i> Volver
+        </a>
+    </div>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">
+        @ViewBag.Error
+    </div>
+}
+
+<div class="row">
+    <!-- Información principal -->
+    <div class="col-md-8">
+        <div class="card">
+            <div class="card-header bg-@estadoColor text-white">
+                <h5>
+                    @if (Model.TipoCultivo.ToLower().Contains("hortaliza"))
+                    {
+                        <i class="fas fa-carrot"></i>
+                    }
+                    else if (Model.TipoCultivo.ToLower().Contains("frutal"))
+                    {
+                        <i class="fas fa-apple-alt"></i>
+                    }
+                    else if (Model.TipoCultivo.ToLower().Contains("aromática"))
+                    {
+                        <i class="fas fa-leaf"></i>
+                    }
+                    else
+                    {
+                        <i class="fas fa-seedling"></i>
+                    }
+                    Información de la Planta
+                    <span class="badge bg-light text-@estadoColor float-end">@Model.Estado</span>
+                </h5>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>🌱 Nombre Común:</strong></td>
+                                <td>@Model.NombreComun</td>
+                            </tr>
+                            <tr>
+                                <td><strong>🔬 Nombre Científico:</strong></td>
+                                <td>@(string.IsNullOrEmpty(Model.NombreCientifico) ? "No especificado" : Model.NombreCientifico)</td>
+                            </tr>
+                            <tr>
+                                <td><strong>🗂️ Tipo de Cultivo:</strong></td>
+                                <td>@Model.TipoCultivo</td>
+                            </tr>
+                            <tr>
+                                <td><strong>📅 Fecha de Siembra:</strong></td>
+                                <td>@Model.FechaSiembra.ToString("dd/MM/yyyy")</td>
+                            </tr>
+                        </table>
+                    </div>
+                    <div class="col-md-6">
+                        <table class="table table-borderless">
+                            <tr>
+                                <td><strong>⏰ Días desde siembra:</strong></td>
+                                <td><span class="badge bg-primary">@diasDesdeSiembra días</span></td>
+                            </tr>
+                            <tr>
+                                <td><strong>📍 Zona:</strong></td>
+                                <td>
+                                    @if (ViewBag.Zona != null)
+                                    {
+                                        <a asp-controller="Zona" asp-action="Details" asp-route-id="@ViewBag.Zona.Id">
+                                            @ViewBag.Zona.NombreZona
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>🌱 Huerto:</strong></td>
+                                <td>
+                                    @if (ViewBag.Huerto != null)
+                                    {
+                                        <a asp-controller="Huerto" asp-action="Details" asp-route-id="@ViewBag.Huerto.Id">
+                                            @ViewBag.Huerto.NombreHuerto
+                                        </a>
+                                    }
+                                </td>
+                            </tr>
+                            <tr>
+                                <td><strong>📝 Estado Actual:</strong></td>
+                                <td><span class="badge bg-@estadoColor">@Model.Estado</span></td>
+                            </tr>
+                        </table>
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Notas))
+                {
+                    <div class="mt-3">
+                        <h6><strong>📝 Notas de Cuidado:</strong></h6>
+                        <div class="alert alert-light">
+                            @Model.Notas
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Condiciones ambientales -->
+        @if (ViewBag.UltimasLecturas != null && ((List<ConnectedRoot.Models.Lectura>)ViewBag.UltimasLecturas).Any())
+        {
+            <div class="card mt-3">
+                <div class="card-header bg-info text-white">
+                    <h6><i class="fas fa-thermometer-half"></i> Condiciones Ambientales Recientes</h6>
+                </div>
+                <div class="card-body">
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Unidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var lectura in (List<ConnectedRoot.Models.Lectura>)ViewBag.UltimasLecturas)
+                                {
+                                    <tr>
+                                        <td>@lectura.FechaHora.ToString("dd/MM HH:mm")</td>
+                                        <td>
+                                            <span class="badge @(lectura.Tipo.ToLower().Contains("temperatura") ? "bg-danger" : 
+                                                                 lectura.Tipo.ToLower().Contains("humedad") ? "bg-primary" : "bg-success")">
+                                                @lectura.Tipo
+                                            </span>
+                                        </td>
+                                        <td><strong>@lectura.Valor.ToString("F2")</strong></td>
+                                        <td>@lectura.Unidad</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Panel lateral -->
+    <div class="col-md-4">
+        <!-- Progreso de crecimiento -->
+        <div class="card">
+            <div class="card-header bg-success text-white">
+                <h6><i class="fas fa-chart-line"></i> Progreso de Crecimiento</h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var progreso = Model.Estado switch
+                    {
+                        "Germinando" => 20,
+                        "Crecimiento" => 50,
+                        "Floración" => 75,
+                        "Fructificación" => 90,
+                        "Cosecha" => 100,
+                        "Finalizado" => 100,
+                        _ => 0
+                    };
+                }
+                
+                <div class="progress mb-3">
+                    <div class="progress-bar bg-@estadoColor" role="progressbar" style="width: @progreso%" aria-valuenow="@progreso" aria-valuemin="0" aria-valuemax="100">
+                        @progreso%
+                    </div>
+                </div>
+
+                <div class="timeline">
+                    <div class="timeline-item @(progreso >= 20 ? "completed" : "")">
+                        <i class="fas fa-seed"></i> Germinación
+                    </div>
+                    <div class="timeline-item @(progreso >= 50 ? "completed" : "")">
+                        <i class="fas fa-leaf"></i> Crecimiento
+                    </div>
+                    <div class="timeline-item @(progreso >= 75 ? "completed" : "")">
+                        <i class="fas fa-flower"></i> Floración
+                    </div>
+                    <div class="timeline-item @(progreso >= 90 ? "completed" : "")">
+                        <i class="fas fa-apple-alt"></i> Fructificación
+                    </div>
+                    <div class="timeline-item @(progreso >= 100 ? "completed" : "")">
+                        <i class="fas fa-basket-shopping"></i> Cosecha
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sensores en la zona -->
+        @if (ViewBag.Sensores != null && ((List<ConnectedRoot.Models.Sensor>)ViewBag.Sensores).Any())
+        {
+            <div class="card mt-3">
+                <div class="card-header bg-warning">
+                    <h6><i class="fas fa-microchip"></i> Sensores en la Zona</h6>
+                </div>
+                <div class="card-body">
+                    @foreach (var sensor in (List<ConnectedRoot.Models.Sensor>)ViewBag.Sensores)
+                    {
+                        <div class="d-flex justify-content-between align-items-center mb-2">
+                            <div>
+                                <strong>@sensor.Tipo</strong><br>
+                                <small class="text-muted">@sensor.Modelo</small>
+                            </div>
+                            <span class="badge @(sensor.Estado == "activo" ? "bg-success" : "bg-danger")">
+                                @sensor.Estado
+                            </span>
+                        </div>
+                        @if (sensor != ((List<ConnectedRoot.Models.Sensor>)ViewBag.Sensores).Last())
+                        {
+                            <hr>
+                        }
+                    }
+                    
+                    <div class="mt-3">
+                        <a asp-controller="Lectura" asp-action="Index" asp-route-zonaId="@Model.ZonaId" class="btn btn-info btn-sm">
+                            <i class="fas fa-chart-line"></i> Ver Lecturas
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+
+        <!-- Acciones rápidas -->
+        <div class="card mt-3">
+            <div class="card-header bg-secondary text-white">
+                <h6><i class="fas fa-tasks"></i> Acciones Rápidas</h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning btn-sm">
+                        <i class="fas fa-edit"></i> Actualizar Estado
+                    </a>
+                    <a asp-controller="Alerta" asp-action="Create" asp-route-zonaId="@Model.ZonaId" class="btn btn-danger btn-sm">
+                        <i class="fas fa-exclamation-triangle"></i> Crear Alerta
+                    </a>
+                    <a asp-controller="Lectura" asp-action="Create" class="btn btn-info btn-sm">
+                        <i class="fas fa-plus"></i> Registrar Lectura
+                    </a>
+                    <a asp-action="Index" asp-route-zonaId="@Model.ZonaId" class="btn btn-success btn-sm">
+                        <i class="fas fa-seedling"></i> Ver Otras Plantas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 20px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 15px;
+    padding-left: 25px;
+    color: #6c757d;
+}
+
+.timeline-item.completed {
+    color: #28a745;
+    font-weight: bold;
+}
+
+.timeline-item i {
+    position: absolute;
+    left: -15px;
+    top: 2px;
+    width: 20px;
+    text-align: center;
+}
+
+.timeline-item.completed i {
+    color: #28a745;
+}
+</style>

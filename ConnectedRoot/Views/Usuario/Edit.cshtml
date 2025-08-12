@@ -1,0 +1,311 @@
+@model ConnectedRoot.Models.Usuario
+
+@{
+    ViewData["Title"] = "Editar Usuario";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-edit"></i> Editar Usuario
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-users"></i> Usuarios
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-user"></i> Información Personal
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Nombre" class="form-label">Nombre(s) <span class="text-danger">*</span></label>
+                                <input asp-for="Nombre" class="form-control" placeholder="Ingresa el nombre" required />
+                                <span asp-validation-for="Nombre" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="PrimerApellido" class="form-label">Primer Apellido <span class="text-danger">*</span></label>
+                                <input asp-for="PrimerApellido" class="form-control" placeholder="Ingresa el primer apellido" required />
+                                <span asp-validation-for="PrimerApellido" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="SegundoApellido" class="form-label">Segundo Apellido</label>
+                                <input asp-for="SegundoApellido" class="form-control" placeholder="Ingresa el segundo apellido (opcional)" />
+                                <span asp-validation-for="SegundoApellido" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Correo" class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                                <input asp-for="Correo" type="email" class="form-control" placeholder="usuario@ejemplo.com" required />
+                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-key"></i> Credenciales y Acceso
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Contraseña" class="form-label">Nueva Contraseña</label>
+                                <div class="input-group">
+                                    <input asp-for="Contraseña" type="password" class="form-control" id="password" placeholder="Dejar vacío para mantener actual" />
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="eyeIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Contraseña" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Dejar vacío para mantener la contraseña actual. Mínimo 6 caracteres si se cambia.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Rol" class="form-label">Rol <span class="text-danger">*</span></label>
+                                <select asp-for="Rol" class="form-select" required>
+                                    <option value="administrador">👨‍💼 Administrador</option>
+                                    <option value="agricultor">🌱 Agricultor</option>
+                                </select>
+                                <span asp-validation-for="Rol" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Activo" class="form-label">Estado del Usuario</label>
+                                <div class="form-check form-switch">
+                                    <input asp-for="Activo" class="form-check-input" type="checkbox" id="activoSwitch" />
+                                    <label class="form-check-label" for="activoSwitch">
+                                        <span id="estadoLabel">@(Model.Activo ? "Activo" : "Inactivo")</span>
+                                    </label>
+                                </div>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Los usuarios inactivos no pueden acceder al sistema.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos ocultos -->
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> Ver detalles
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Restablecer
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Información de Edición
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>ID del Usuario:</strong><br>
+                    <code>@Model.Id</code><br><br>
+                    
+                    <strong>Campos editables:</strong><br>
+                    • Información personal<br>
+                    • Correo electrónico<br>
+                    • Contraseña (opcional)<br>
+                    • Rol del usuario<br>
+                    • Estado (activo/inactivo)<br><br>
+                    
+                    <strong>Contraseña:</strong><br>
+                    • Dejar vacío para mantener la actual<br>
+                    • Mínimo 6 caracteres si se cambia<br><br>
+                    
+                    <strong>Validaciones:</strong><br>
+                    • El correo debe ser único<br>
+                    • Todos los campos marcados con * son obligatorios
+                </small>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Estado Actual
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Estado:</strong>
+                    <span class="badge @(Model.Activo ? "bg-success" : "bg-danger") ms-1">
+                        @(Model.Activo ? "Activo" : "Inactivo")
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>Rol actual:</strong>
+                    <span class="badge bg-info ms-1">@Model.Rol</span>
+                </div>
+                
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const password = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (password.type === 'password') {
+                password.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        });
+
+        // Update estado label on switch change
+        document.getElementById('activoSwitch').addEventListener('change', function() {
+            const label = document.getElementById('estadoLabel');
+            label.textContent = this.checked ? 'Activo' : 'Inactivo';
+            label.className = this.checked ? 'text-success' : 'text-danger';
+        });
+
+        // Email validation feedback
+        document.getElementById('Correo').addEventListener('blur', function() {
+            const email = this.value;
+            const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Password validation (only if not empty)
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length === 0) {
+                // Empty is OK (keep current password)
+                this.classList.remove('is-invalid', 'is-valid');
+            } else if (password.length >= 6) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de restablecer todos los cambios?')) {
+                document.querySelector('form').reset();
+                // Remove validation classes
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function(element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+                // Reset estado label
+                const activoSwitch = document.getElementById('activoSwitch');
+                const estadoLabel = document.getElementById('estadoLabel');
+                estadoLabel.textContent = activoSwitch.checked ? 'Activo' : 'Inactivo';
+                estadoLabel.className = activoSwitch.checked ? 'text-success' : 'text-danger';
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                alert.style.display = 'none';
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function() {
+            formChanged = true;
+        });
+
+        // Warn before leaving if form has changes
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        // Reset form changed flag on submit
+        document.querySelector('form').addEventListener('submit', function() {
+            formChanged = false;
+        });
+    </script>
+}

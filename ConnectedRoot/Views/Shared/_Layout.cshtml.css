@@ -1,0 +1,38 @@
+﻿/* ==============================================
+   LAYOUT BASE SIMPLE
+   ============================================== */
+
+/* Layout base */
+body {
+    background-color: #F8F9FA;
+    margin: 0;
+    overflow-x: hidden;
+    display: flex;
+    flex-direction: column;
+    min-height: 100vh;
+    position: relative; /* Importante para las hojas */
+}
+
+/* Contenedor principal para que footer quede abajo */
+main {
+    flex: 1;
+}
+
+/* ==============================================
+   HEADER
+   ============================================== */
+
+header {
+    box-shadow: 0 2px 4px rgba(0,0,0,0.1);
+    position: relative;
+}
+
+/* ==============================================
+   FOOTER
+   ============================================== */
+
+footer {
+    margin-top: auto;
+    position: relative;
+}
+

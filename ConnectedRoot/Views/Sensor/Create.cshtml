@@ -1,0 +1,336 @@
+@model ConnectedRoot.Models.Sensor
+
+@{
+    ViewData["Title"] = "Instalar Sensor";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-plus"></i> Instalar Nuevo Sensor IoT
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-microchip"></i> Sensores
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Instalar</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.NombreZona))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i>
+        <strong>Instalando sensor en la zona:</strong> @ViewBag.NombreZona
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-microchip"></i> Información del Sensor
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label for="ZonaId" class="form-label">Zona de Instalación <span class="text-danger">*</span></label>
+                                <select name="ZonaId" id="ZonaId" class="form-select" required>
+                                    <option value="">-- Selecciona una zona --</option>
+                                    @if (ViewBag.ZonasConHuerto != null)
+                                    {
+                                        @foreach (var zona in ViewBag.ZonasConHuerto)
+                                        {
+                                            @if (ViewBag.ZonaSeleccionada?.ToString() == zona.ZonaId)
+                                            {
+                                                <option value="@zona.ZonaId" selected>@zona.Display</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@zona.ZonaId">@zona.Display</option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="ZonaId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-map-marked-alt"></i> 
+                                    Solo se muestran zonas activas.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="Tipo" class="form-label">Tipo de Sensor <span class="text-danger">*</span></label>
+                                <select name="Tipo" id="Tipo" class="form-select" required>
+                                    <option value="">-- Selecciona el tipo --</option>
+                                    <option value="Temperatura">🌡️ Temperatura</option>
+                                    <option value="Humedad del Suelo">💧 Humedad del Suelo</option>
+                                    <option value="Humedad Ambiental">🌫️ Humedad Ambiental</option>
+                                    <option value="Luminosidad">☀️ Luminosidad</option>
+                                    <option value="pH del Suelo">⚗️ pH del Suelo</option>
+                                    <option value="Temperatura y Humedad">🌡️💧 Temperatura y Humedad</option>
+                                </select>
+                                <span asp-validation-for="Tipo" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="Modelo" class="form-label">Modelo del Sensor <span class="text-danger">*</span></label>
+                                <input name="Modelo" id="Modelo" type="text" class="form-control" placeholder="Ej: DHT22, DS18B20, SHT30..." required />
+                                <span asp-validation-for="Modelo" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Ingresa el modelo específico del dispositivo.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="Estado" class="form-label">Estado Inicial <span class="text-danger">*</span></label>
+                                <select name="Estado" id="Estado" class="form-select" required>
+                                    <option value="activo" selected>🟢 Activo</option>
+                                    <option value="inactivo">🔴 Inactivo</option>
+                                    <option value="mantenimiento">🔧 En Mantenimiento</option>
+                                </select>
+                                <span asp-validation-for="Estado" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-toggle-on"></i> 
+                                    Los sensores activos generan lecturas automáticamente.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label for="FechaInstalacion" class="form-label">Fecha de Instalación <span class="text-danger">*</span></label>
+                                <input name="FechaInstalacion" id="FechaInstalacion" type="date" class="form-control" 
+                                       value="@DateTime.Now.ToString("yyyy-MM-dd")" required />
+                                <span asp-validation-for="FechaInstalacion" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-calendar"></i> 
+                                    Fecha en que se instaló físicamente el sensor.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label for="Descripcion" class="form-label">Notas de Instalación</label>
+                                <textarea name="Descripcion" id="Descripcion" class="form-control" rows="3" 
+                                         placeholder="Ubicación específica, configuración especial, observaciones..."></textarea>
+                                <span asp-validation-for="Descripcion" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-edit"></i> 
+                                    Información adicional sobre la instalación y configuración.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Limpiar formulario
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Instalar Sensor
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Consejos de Instalación
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>🌡️ Temperatura:</strong><br>
+                    • Evitar luz solar directa<br>
+                    • Mantener ventilado<br>
+                    • Altura recomendada: 1.5-2m<br><br>
+                    
+                    <strong>💧 Humedad del Suelo:</strong><br>
+                    • Enterrar a 5-10cm de profundidad<br>
+                    • Zona representativa del cultivo<br>
+                    • Evitar piedras y raíces<br><br>
+                    
+                    <strong>☀️ Luminosidad:</strong><br>
+                    • Libre de sombras artificiales<br>
+                    • Orientación hacia el sur<br>
+                    • Limpiar regularmente<br><br>
+                    
+                    <strong>📱 Conectividad:</strong><br>
+                    • Verificar señal WiFi/LoRa<br>
+                    • Proteger de humedad<br>
+                    • Revisar nivel de batería
+                </small>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Importante
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="alert alert-warning">
+                    <small>
+                        <strong>⚠️ Configuración posterior:</strong><br>
+                        • Anota la dirección MAC del sensor<br>
+                        • Configura umbrales de alerta<br>
+                        • Programa frecuencia de lecturas<br>
+                        • Prueba la conectividad
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-map-marked-alt"></i> Zonas Disponibles
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var zonasConHuerto = ViewBag.ZonasConHuerto as IEnumerable<dynamic>;
+                }
+                @if (zonasConHuerto != null && zonasConHuerto.Any())
+                {
+                    <small class="text-muted">
+                        Hay <strong>@zonasConHuerto.Count() zona(s) activa(s)</strong> disponible(s) para instalar sensores.
+                    </small>
+                }
+                else
+                {
+                    <div class="alert alert-warning alert-sm">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <small>No hay zonas activas disponibles. 
+                        <a asp-controller="Zona" asp-action="Create">Crear una zona</a> primero.</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validación en tiempo real del tipo
+        document.getElementById('Tipo').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+
+        // Validación del modelo
+        document.getElementById('Modelo').addEventListener('input', function() {
+            const modelo = this.value.trim();
+            
+            if (modelo.length >= 2) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                if (modelo.length > 0) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+
+        // Validación de la zona seleccionada
+        document.getElementById('ZonaId').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de limpiar todos los campos?')) {
+                document.querySelector('form').reset();
+                // Remove validation classes
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function(element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function() {
+            formChanged = true;
+        });
+
+        // Warn before leaving if form has changes
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        // Reset form changed flag on submit
+        document.querySelector('form').addEventListener('submit', function() {
+            formChanged = false;
+        });
+    </script>
+}

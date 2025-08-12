@@ -1,0 +1,475 @@
+@model ConnectedRoot.ViewModels.AlertaPaginadoViewModel
+
+@{
+    ViewData["Title"] = "Sistema de Alertas";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <strong><i class="fas fa-exclamation-triangle"></i> Sistema de Alertas IoT</strong>
+    </h2>
+    <div class="btn-group">
+        <a asp-action="Create" class="btn btn-primary">
+            <i class="fas fa-plus"></i> Crear Alerta Manual
+        </a>
+        <a asp-action="Generar" class="btn btn-warning">
+            <i class="fas fa-sync"></i> Generar Automáticas
+        </a>
+    </div>
+</div>
+
+<!-- Mensajes de feedback -->
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.Success))
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @ViewBag.Success
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Error"] != null)
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @TempData["Error"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (TempData["Success"] != null)
+{
+    <div class="alert alert-success alert-dismissible fade show" role="alert">
+        <i class="fas fa-check-circle"></i>
+        @TempData["Success"]
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<!-- Estadísticas rápidas -->
+@if (Model.TotalAlertas > 0)
+{
+    <div class="row mb-4">
+        <div class="col-md-3">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h4>@Model.AlertasPendientes</h4>
+                    <small>Alertas Pendientes</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4>@Model.AlertasHoy</h4>
+                    <small>Alertas de Hoy</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4>@Model.TotalAlertas</h4>
+                    <small>Total Mostradas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-3">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4>@(Model.TotalAlertas - Model.AlertasPendientes)</h4>
+                    <small>Resueltas</small>
+                </div>
+            </div>
+        </div>
+    </div>
+}
+
+<!-- Panel de Filtros -->
+<div class="card shadow-sm mb-4">
+    <div class="card-body">
+        <form method="get" asp-action="Index">
+            <div class="row g-3">
+                <!-- Búsqueda por texto -->
+                <div class="col-md-3">
+                    <label for="busquedaTexto" class="form-label">Buscar</label>
+                    <input type="text" 
+                           class="form-control" 
+                           id="busquedaTexto" 
+                           name="busquedaTexto" 
+                           value="@Model.BusquedaTexto" 
+                           placeholder="Tipo o mensaje">
+                </div>
+                
+                <!-- Filtro por tipo -->
+                <div class="col-md-2">
+                    <label for="filtroTipo" class="form-label">Tipo</label>
+                    <select class="form-select" id="filtroTipo" name="filtroTipo">
+                        @foreach (var tipo in Model.TiposAlertaDisponibles)
+                        {
+                            <option value="@tipo" selected="@(Model.FiltroTipo == tipo)">
+                                @switch (tipo)
+                                {
+                                    case "Temperatura Alta":
+                                        <text>🌡️ Temp. Alta</text>
+                                        break;
+                                    case "Temperatura Baja":
+                                        <text>🧊 Temp. Baja</text>
+                                        break;
+                                    case "Humedad Baja":
+                                        <text>💧 Humedad Baja</text>
+                                        break;
+                                    case "Humedad Alta":
+                                        <text>🌊 Humedad Alta</text>
+                                        break;
+                                    case "Sensor Desconectado":
+                                        <text>📡 Sensor Desc.</text>
+                                        break;
+                                    case "Plagas Detectadas":
+                                        <text>🐛 Plagas</text>
+                                        break;
+                                    case "Mantenimiento Requerido":
+                                        <text>🔧 Mantenimiento</text>
+                                        break;
+                                    default:
+                                        @tipo
+                                        break;
+                                }
+                            </option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por estado -->
+                <div class="col-md-2">
+                    <label for="filtroEstado" class="form-label">Estado</label>
+                    <select class="form-select" id="filtroEstado" name="filtroEstado">
+                        @foreach (var estado in Model.EstadosDisponibles)
+                        {
+                            <option value="@estado" selected="@(Model.FiltroEstado == estado)">@estado</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Filtro por zona -->
+                <div class="col-md-2">
+                    <label for="filtroZona" class="form-label">Zona</label>
+                    <select class="form-select" id="filtroZona" name="filtroZona">
+                        @foreach (var zona in Model.ZonasDisponibles)
+                        {
+                            <option value="@zona.Key" selected="@(Model.FiltroZona == zona.Key)">@zona.Value</option>
+                        }
+                    </select>
+                </div>
+
+                <!-- Fecha desde -->
+                <div class="col-md-1">
+                    <label for="filtroFechaDesde" class="form-label">Desde</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="filtroFechaDesde" 
+                           name="filtroFechaDesde" 
+                           value="@Model.FiltroFechaDesde">
+                </div>
+
+                <!-- Fecha hasta -->
+                <div class="col-md-1">
+                    <label for="filtroFechaHasta" class="form-label">Hasta</label>
+                    <input type="date" 
+                           class="form-control" 
+                           id="filtroFechaHasta" 
+                           name="filtroFechaHasta" 
+                           value="@Model.FiltroFechaHasta">
+                </div>
+                
+                <!-- Botones -->
+                <div class="col-md-1 d-flex align-items-end">
+                    <div class="btn-group-vertical w-100">
+                        <button type="submit" class="btn btn-primary btn-sm">
+                            <i class="fas fa-search">Filtrar</i>
+                        </button>
+                        <a href="@Url.Action("Index")" class="btn btn-outline-secondary btn-sm">
+                            <i class="fas fa-times">Limpiar</i>
+                        </a>
+                    </div>
+                </div>
+            </div>
+        </form>
+    </div>
+</div>
+
+<!-- Contenido principal -->
+@if (Model.TotalAlertas == 0)
+{
+    @if (string.IsNullOrEmpty(Model.BusquedaTexto) && Model.FiltroTipo == "Todos" && 
+         Model.FiltroEstado == "Todos" && Model.FiltroZona == "Todos" && 
+         string.IsNullOrEmpty(Model.FiltroFechaDesde) && string.IsNullOrEmpty(Model.FiltroFechaHasta))
+    {
+        <!-- No hay alertas en absoluto -->
+        <div class="text-center py-5">
+            <div class="alert alert-success border-0 shadow-sm">
+                <i class="fas fa-check-circle fa-3x text-success mb-3"></i>
+                <h4>¡Excelente! No hay alertas críticas 🎉</h4>
+                <p class="mb-3">El sistema está monitoreando automáticamente tus sensores.</p>
+                <a asp-action="Create" class="btn btn-primary">
+                    <i class="fas fa-plus"></i> Crear alerta manual
+                </a>
+                <a asp-action="Generar" class="btn btn-outline-warning ms-2">
+                    <i class="fas fa-sync"></i> Generar automáticas
+                </a>
+            </div>
+        </div>
+    }
+    else
+    {
+        <!-- No hay resultados para la búsqueda -->
+        <div class="text-center py-5">
+            <div class="alert alert-warning border-0 shadow-sm">
+                <i class="fas fa-search fa-3x text-warning mb-3"></i>
+                <h4>No se encontraron resultados</h4>
+                <p class="mb-3">No hay alertas que coincidan con los filtros aplicados.</p>
+                <a href="@Url.Action("Index")" class="btn btn-outline-primary">
+                    <i class="fas fa-undo"></i> Limpiar filtros
+                </a>
+            </div>
+        </div>
+    }
+}
+else
+{
+    <!-- Información de resultados -->
+    <div class="d-flex justify-content-between align-items-center mb-3">
+        <h5 class="mb-0">
+            <i class="fas fa-list"></i> Lista de Alertas
+            <span class="badge bg-primary fs-6">@Model.TotalAlertas alerta(s)</span>
+        </h5>
+        <small class="text-muted">
+            <i class="fas fa-info-circle"></i>
+            Mostrando @Model.AlertaDesde-@Model.AlertaHasta de @Model.TotalAlertas alerta(s)
+        </small>
+    </div>
+
+    <div class="row">
+        @foreach (var alerta in Model.Alertas)
+        {
+            <div class="col-md-6 col-lg-4 mb-4">
+                <div class="card h-100 shadow-sm border-@(alerta.Estado == "pendiente" ? "danger" : "success")">
+                    <div class="card-header @(alerta.Estado == "pendiente" ? "bg-danger" : "bg-success") text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">
+                                    @switch (alerta.Tipo.ToLower())
+                                    {
+                                        case var t when t.Contains("temperatura"):
+                                            <i class="fas fa-thermometer-full"></i>
+                                            break;
+                                        case var t when t.Contains("humedad"):
+                                            <i class="fas fa-tint"></i>
+                                            break;
+                                        case var t when t.Contains("sensor"):
+                                            <i class="fas fa-wifi"></i>
+                                            break;
+                                        case var t when t.Contains("plagas"):
+                                            <i class="fas fa-bug"></i>
+                                            break;
+                                        case var t when t.Contains("mantenimiento"):
+                                            <i class="fas fa-wrench"></i>
+                                            break;
+                                        default:
+                                            <i class="fas fa-exclamation-triangle"></i>
+                                            break;
+                                    }
+                                    @alerta.Tipo
+                                </h6>
+                                <small class="text-white-50">@alerta.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                            </div>
+                            <span class="badge @(alerta.Estado == "pendiente" ? "bg-warning" : "bg-light") text-dark">
+                                @(alerta.Estado == "pendiente" ? "PENDIENTE" : "RESUELTA")
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (!string.IsNullOrEmpty(alerta.ZonaId) && Model.NombresZonas.ContainsKey(alerta.ZonaId))
+                        {
+                            <p class="card-text">
+                                <strong>📍 Zona:</strong><br>
+                                <span class="text-primary">@Model.NombresZonas[alerta.ZonaId]</span>
+                                @if (Model.NombresHuertos.ContainsKey(alerta.ZonaId))
+                                {
+                                    <br><small class="text-muted">@Model.NombresHuertos[alerta.ZonaId]</small>
+                                }
+                            </p>
+                        }
+                        
+                        <p class="card-text">
+                            <strong>💯 Valor Registrado:</strong><br>
+                            <span class="h5 @(alerta.Estado == "pendiente" ? "text-danger" : "text-success")">
+                                @alerta.ValorRegistrado.ToString("F2")
+                            </span>
+                        </p>
+                        
+                        @if (alerta.UmbralMinimo != 0 || alerta.UmbralMaximo != 0)
+                        {
+                            <p class="card-text">
+                                <strong>⚠️ Rango Normal:</strong><br>
+                                <small class="text-muted">@alerta.UmbralMinimo.ToString("F1") - @alerta.UmbralMaximo.ToString("F1")</small>
+                            </p>
+                        }
+                        
+                        @if (!string.IsNullOrEmpty(alerta.Mensaje))
+                        {
+                            <p class="card-text">
+                                <strong>📝 Mensaje:</strong><br>
+                                <small class="text-muted">
+                                    @{
+                                        var mensaje = alerta.Mensaje;
+                                        var mensajeCorto = mensaje.Length > 80 ? mensaje.Substring(0, 80) + "..." : mensaje;
+                                    }
+                                    @mensajeCorto
+                                </small>
+                            </p>
+                        }
+                    </div>
+                    <div class="card-footer bg-transparent">
+                        <div class="btn-group w-100" role="group">
+                            <!-- Botón Details -->
+                            <a asp-action="Details" asp-route-id="@alerta.Id" 
+                               class="btn btn-sm btn-outline-info"
+                               title="Ver detalles de la alerta" 
+                               data-bs-toggle="tooltip">
+                                <i class="fas fa-eye"></i>
+                                <span class="d-none d-md-inline ms-1">Ver</span>
+                            </a>
+
+                            <!-- Botón Edit -->
+                            <a asp-action="Edit" asp-route-id="@alerta.Id" 
+                               class="btn btn-sm btn-outline-warning"
+                               title="Editar alerta" 
+                               data-bs-toggle="tooltip">
+                                <i class="fas fa-edit"></i>
+                                <span class="d-none d-md-inline ms-1">Editar</span>
+                            </a>
+
+                            <!-- Botón Toggle Status -->
+                            <form asp-action="ToggleStatus" asp-route-id="@alerta.Id" method="post" class="d-inline">
+                                @Html.AntiForgeryToken()
+                                <button type="submit" 
+                                        class="btn btn-sm @(alerta.Estado == "pendiente" ? "btn-outline-success" : "btn-outline-danger")"
+                                        title="@(alerta.Estado == "pendiente" ? "Resolver" : "Marcar pendiente") alerta"
+                                        data-bs-toggle="tooltip"
+                                        onclick="return confirm('@(alerta.Estado == "pendiente" ? "¿Marcar como resuelta?" : "¿Marcar como pendiente?")')">
+                                    <i class="fas fa-@(alerta.Estado == "pendiente" ? "check" : "undo")"></i>
+                                    <span class="d-none d-md-inline ms-1">@(alerta.Estado == "pendiente" ? "Resolver" : "Pendiente")</span>
+                                </button>
+                            </form>
+                        </div>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+
+    <!-- Paginación -->
+    @if (Model.TotalPaginas > 1)
+    {
+        <nav aria-label="Paginación de alertas" class="mt-4">
+            <ul class="pagination justify-content-center">
+                <!-- Primera página -->
+                @if (Model.TienePaginaAnterior)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipo = Model.FiltroTipo, filtroEstado = Model.FiltroEstado, filtroZona = Model.FiltroZona, filtroFechaDesde = Model.FiltroFechaDesde, filtroFechaHasta = Model.FiltroFechaHasta, pagina = 1 })">
+                            <i class="fas fa-angle-double-left"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipo = Model.FiltroTipo, filtroEstado = Model.FiltroEstado, filtroZona = Model.FiltroZona, filtroFechaDesde = Model.FiltroFechaDesde, filtroFechaHasta = Model.FiltroFechaHasta, pagina = Model.PaginaActual - 1 })">
+                            <i class="fas fa-angle-left"></i>
+                        </a>
+                    </li>
+                }
+
+                <!-- Páginas numéricas -->
+                @{
+                    int paginaInicio = Math.Max(1, Model.PaginaActual - 2);
+                    int paginaFin = Math.Min(Model.TotalPaginas, Model.PaginaActual + 2);
+                }
+
+                @for (int i = paginaInicio; i <= paginaFin; i++)
+                {
+                    <li class="page-item @(i == Model.PaginaActual ? "active" : "")">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipo = Model.FiltroTipo, filtroEstado = Model.FiltroEstado, filtroZona = Model.FiltroZona, filtroFechaDesde = Model.FiltroFechaDesde, filtroFechaHasta = Model.FiltroFechaHasta, pagina = i })">
+                            @i
+                        </a>
+                    </li>
+                }
+
+                <!-- Última página -->
+                @if (Model.TienePaginaSiguiente)
+                {
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipo = Model.FiltroTipo, filtroEstado = Model.FiltroEstado, filtroZona = Model.FiltroZona, filtroFechaDesde = Model.FiltroFechaDesde, filtroFechaHasta = Model.FiltroFechaHasta, pagina = Model.PaginaActual + 1 })">
+                            <i class="fas fa-angle-right"></i>
+                        </a>
+                    </li>
+                    <li class="page-item">
+                        <a class="page-link" href="@Url.Action("Index", new { busquedaTexto = Model.BusquedaTexto, filtroTipo = Model.FiltroTipo, filtroEstado = Model.FiltroEstado, filtroZona = Model.FiltroZona, filtroFechaDesde = Model.FiltroFechaDesde, filtroFechaHasta = Model.FiltroFechaHasta, pagina = Model.TotalPaginas })">
+                            <i class="fas fa-angle-double-right"></i>
+                        </a>
+                    </li>
+                }
+            </ul>
+        </nav>
+    }
+}
+
+@section Scripts {
+    <script>
+        // Inicializar tooltips de Bootstrap
+        document.addEventListener('DOMContentLoaded', function() {
+            var tooltipTriggerList = [].slice.call(document.querySelectorAll('[data-bs-toggle="tooltip"]'));
+            var tooltipList = tooltipTriggerList.map(function (tooltipTriggerEl) {
+                return new bootstrap.Tooltip(tooltipTriggerEl);
+            });
+        });
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Validación de fechas
+        document.getElementById('filtroFechaDesde').addEventListener('change', function() {
+            const fechaDesde = this.value;
+            const fechaHasta = document.getElementById('filtroFechaHasta').value;
+            
+            if (fechaDesde && fechaHasta && fechaDesde > fechaHasta) {
+                alert('La fecha "Desde" no puede ser mayor que la fecha "Hasta"');
+                this.value = '';
+            }
+        });
+
+        document.getElementById('filtroFechaHasta').addEventListener('change', function() {
+            const fechaHasta = this.value;
+            const fechaDesde = document.getElementById('filtroFechaDesde').value;
+            
+            if (fechaDesde && fechaHasta && fechaHasta < fechaDesde) {
+                alert('La fecha "Hasta" no puede ser menor que la fecha "Desde"');
+                this.value = '';
+            }
+        });
+    </script>
+}

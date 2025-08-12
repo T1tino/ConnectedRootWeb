@@ -1,0 +1,184 @@
+@model ConnectedRoot.Models.Usuario
+
+@{
+    ViewData["Title"] = "Crear Usuario";
+}
+
+<h2>Crear Nuevo Usuario</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Información Personal</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Nombre" class="form-label">Nombre(s) <span class="text-danger">*</span></label>
+                                <input asp-for="Nombre" class="form-control" placeholder="Ingresa el nombre" required />
+                                <span asp-validation-for="Nombre" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="PrimerApellido" class="form-label">Primer Apellido <span class="text-danger">*</span></label>
+                                <input asp-for="PrimerApellido" class="form-control" placeholder="Ingresa el primer apellido" required />
+                                <span asp-validation-for="PrimerApellido" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="SegundoApellido" class="form-label">Segundo Apellido</label>
+                                <input asp-for="SegundoApellido" class="form-control" placeholder="Ingresa el segundo apellido (opcional)" />
+                                <span asp-validation-for="SegundoApellido" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Correo" class="form-label">Correo Electrónico <span class="text-danger">*</span></label>
+                                <input asp-for="Correo" type="email" class="form-control" placeholder="usuario@ejemplo.com" required />
+                                <span asp-validation-for="Correo" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">Credenciales y Acceso</h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Contraseña" class="form-label">Contraseña <span class="text-danger">*</span></label>
+                                <div class="input-group">
+                                    <input asp-for="Contraseña" type="password" class="form-control" id="password" placeholder="Mínimo 6 caracteres" required minlength="6" />
+                                    <button class="btn btn-outline-secondary" type="button" id="togglePassword">
+                                        <i class="fas fa-eye" id="eyeIcon"></i>
+                                    </button>
+                                </div>
+                                <span asp-validation-for="Contraseña" class="text-danger"></span>
+                                <div class="form-text">La contraseña debe tener al menos 6 caracteres.</div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Rol" class="form-label">Rol <span class="text-danger">*</span></label>
+                                <select asp-for="Rol" class="form-select" required>
+                                    <option value="">Seleccionar rol...</option>
+                                    <option value="administrador">👨‍💼 Administrador</option>
+                                    <option value="agricultor">🌱 Agricultor</option>
+                                </select>
+                                <span asp-validation-for="Rol" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Campos ocultos -->
+            <input asp-for="Activo" type="hidden" value="true" />
+            
+            <div class="d-flex justify-content-between mt-4">
+                <a asp-action="Index" class="btn btn-secondary">
+                    <i class="fas fa-arrow-left"></i> Cancelar
+                </a>
+                <button type="submit" class="btn btn-success">
+                    <i class="fas fa-plus"></i> Crear Usuario
+                </button>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">💡 Información</h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Campos requeridos:</strong><br>
+                    • Nombre<br>
+                    • Primer apellido<br>
+                    • Correo electrónico<br>
+                    • Contraseña<br>
+                    • Rol<br><br>
+                    
+                    <strong>Roles disponibles:</strong><br>
+                    • <strong>Administrador:</strong> Acceso completo<br>
+                    • <strong>Agricultor:</strong> Gestión de huertos<br><br>
+                    
+                    <strong>Nota:</strong> El usuario se creará como activo por defecto.
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    @{await Html.RenderPartialAsync("_ValidationScriptsPartial");}
+    
+    <script>
+        // Toggle password visibility
+        document.getElementById('togglePassword').addEventListener('click', function() {
+            const password = document.getElementById('password');
+            const eyeIcon = document.getElementById('eyeIcon');
+            
+            if (password.type === 'password') {
+                password.type = 'text';
+                eyeIcon.classList.remove('fa-eye');
+                eyeIcon.classList.add('fa-eye-slash');
+            } else {
+                password.type = 'password';
+                eyeIcon.classList.remove('fa-eye-slash');
+                eyeIcon.classList.add('fa-eye');
+            }
+        });
+
+        // Email validation feedback
+        document.getElementById('Correo').addEventListener('blur', function() {
+            const email = this.value;
+            const emailRegex = /^[^\s@@]+@@[^\s@@]+\.[^\s@@]+$/;
+            
+            if (email && !emailRegex.test(email)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Password strength indicator
+        document.getElementById('password').addEventListener('input', function() {
+            const password = this.value;
+            
+            if (password.length >= 6) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                if (password.length > 0) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+    </script>
+}

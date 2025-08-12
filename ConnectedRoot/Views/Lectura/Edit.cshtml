@@ -1,0 +1,297 @@
+@model ConnectedRoot.Models.Lectura
+
+@{
+    ViewData["Title"] = "Editar Lectura";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-edit"></i> Editar Lectura
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-chart-line"></i> Lecturas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-bar"></i> Datos de la Lectura
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="SensorId" class="form-label">Sensor <span class="text-danger">*</span></label>
+                                <select asp-for="SensorId" class="form-select" required>
+                                    <option value="">-- Selecciona un sensor --</option>
+                                    @if (ViewBag.SensoresConInfo != null)
+                                    {
+                                        @foreach (var sensor in ViewBag.SensoresConInfo)
+                                        {
+                                            <option value="@sensor.SensorId" data-tipo="@sensor.Tipo">@sensor.Display</option>
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="SensorId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-microchip"></i> 
+                                    Solo se muestran sensores activos.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Tipo" class="form-label">Tipo de Medición <span class="text-danger">*</span></label>
+                                <select asp-for="Tipo" class="form-select" required>
+                                    <option value="Temperatura">🌡️ Temperatura</option>
+                                    <option value="Humedad del Suelo">💧 Humedad del Suelo</option>
+                                    <option value="Humedad Ambiental">🌫️ Humedad Ambiental</option>
+                                    <option value="Luminosidad">☀️ Luminosidad</option>
+                                    <option value="pH del Suelo">⚗️ pH del Suelo</option>
+                                </select>
+                                <span asp-validation-for="Tipo" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="FechaHora" class="form-label">Fecha y Hora <span class="text-danger">*</span></label>
+                                <input asp-for="FechaHora" type="datetime-local" class="form-control" required />
+                                <span asp-validation-for="FechaHora" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Momento original de la medición.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Valor" class="form-label">Valor Medido <span class="text-danger">*</span></label>
+                                <input asp-for="Valor" type="number" step="0.01" class="form-control" 
+                                       placeholder="Ej: 25.5" required />
+                                <span asp-validation-for="Valor" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Unidad" class="form-label">Unidad de Medida <span class="text-danger">*</span></label>
+                                <select asp-for="Unidad" class="form-select" required>
+                                    <option value="°C">°C (Grados Celsius)</option>
+                                    <option value="°F">°F (Grados Fahrenheit)</option>
+                                    <option value="%">% (Porcentaje)</option>
+                                    <option value="lux">lux (Luminosidad)</option>
+                                    <option value="pH">pH (Acidez/Alcalinidad)</option>
+                                    <option value="ppm">ppm (Partes por millón)</option>
+                                </select>
+                                <span asp-validation-for="Unidad" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> Ver detalles
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Restablecer
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Información de Edición
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>ID de la Lectura:</strong><br>
+                    <code>@Model.Id</code><br><br>
+                    
+                    <strong>Fecha de Registro:</strong><br>
+                    @Model.FechaHora.ToString("dd/MM/yyyy HH:mm")<br><br>
+                    
+                    <strong>Campos editables:</strong><br>
+                    • Sensor asociado<br>
+                    • Tipo de medición<br>
+                    • Fecha y hora<br>
+                    • Valor medido<br>
+                    • Unidad de medida<br><br>
+                    
+                    <strong>Validaciones:</strong><br>
+                    • Valores según tipo de sensor<br>
+                    • Fechas coherentes<br>
+                    • Sensor debe estar activo
+                </small>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Lectura Actual
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Tipo:</strong>
+                    <span class="badge bg-info ms-1">@Model.Tipo</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Valor actual:</strong>
+                    <span class="badge bg-primary ms-1">@Model.Valor.ToString("F2") @Model.Unidad</span>
+                </div>
+                <div class="mb-2">
+                    <strong>Registrada hace:</strong>
+                    <span class="badge bg-secondary ms-1">
+                        @{
+                            var horas = (DateTime.Now - Model.FechaHora).TotalHours;
+                            var texto = horas < 1 ? "Menos de 1 hora" : 
+                                       horas < 24 ? $"{(int)horas} hora(s)" : 
+                                       $"{(int)(horas/24)} día(s)";
+                        }
+                        @texto
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Consejos
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>💡 Recomendaciones:</strong><br>
+                    • Verifica que el valor sea realista<br>
+                    • Mantén la fecha de medición original<br>
+                    • Asegúrate de la unidad correcta<br>
+                    • Los cambios afectarán estadísticas
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Mostrar referencias según el tipo
+        document.getElementById('Tipo').addEventListener('change', function() {
+            const tipo = this.value.toLowerCase();
+            const unidadSelect = document.getElementById('Unidad');
+            
+            if (tipo.includes('temperatura')) {
+                unidadSelect.value = '°C';
+            } else if (tipo.includes('humedad')) {
+                unidadSelect.value = '%';
+            } else if (tipo.includes('ph')) {
+                unidadSelect.value = 'pH';
+            } else if (tipo.includes('luminosidad')) {
+                unidadSelect.value = 'lux';
+            }
+        });
+
+        // Validación del valor
+        document.getElementById('Valor').addEventListener('blur', function() {
+            const valor = parseFloat(this.value);
+            const tipo = document.getElementById('Tipo').value.toLowerCase();
+            
+            if (isNaN(valor)) return;
+            
+            this.classList.remove('is-valid', 'is-invalid');
+            
+            if (tipo.includes('temperatura') && (valor < -50 || valor > 100)) {
+                this.classList.add('is-invalid');
+            } else if (tipo.includes('humedad') && (valor < 0 || valor > 100)) {
+                this.classList.add('is-invalid');
+            } else if (tipo.includes('ph') && (valor < 0 || valor > 14)) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de restablecer todos los cambios?')) {
+                document.querySelector('form').reset();
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function(element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function() {
+            formChanged = true;
+        });
+
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        document.querySelector('form').addEventListener('submit', function() {
+            formChanged = false;
+        });
+    </script>
+}

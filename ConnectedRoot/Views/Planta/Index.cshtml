@@ -1,0 +1,249 @@
+@model List<ConnectedRoot.Models.Planta>
+
+@{
+    ViewData["Title"] = ViewBag.Title ?? "Gestión de Plantas";
+}
+
+<h2>🌱 Gestión de Plantas y Cultivos</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">
+        @ViewBag.Error
+    </div>
+}
+
+<!-- Estadísticas rápidas -->
+@if (ViewBag.TotalPlantas != null && ViewBag.TotalPlantas > 0)
+{
+    <div class="row mb-3">
+        <div class="col-md-2">
+            <div class="card bg-primary text-white">
+                <div class="card-body text-center">
+                    <h4>@ViewBag.TotalPlantas</h4>
+                    <small>Total Plantas</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-info text-white">
+                <div class="card-body text-center">
+                    <h4>@ViewBag.PlantasGerminando</h4>
+                    <small>Germinando</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-success text-white">
+                <div class="card-body text-center">
+                    <h4>@ViewBag.PlantasCreciendo</h4>
+                    <small>Crecimiento</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-warning text-white">
+                <div class="card-body text-center">
+                    <h4>@ViewBag.PlantasFloreciendo</h4>
+                    <small>Floración</small>
+                </div>
+            </div>
+        </div>
+        <div class="col-md-2">
+            <div class="card bg-danger text-white">
+                <div class="card-body text-center">
+                    <h4>@ViewBag.PlantasCosechando</h4>
+                    <small>Cosecha</small>
+                </div>
+            </div>
+        </div>
+        
+    </div>
+}
+
+<!-- Información de zona si viene filtrado -->
+@if (ViewBag.Zona != null)
+{
+    <div class="alert alert-info">
+        <strong>📍 Zona:</strong> @ViewBag.Zona.NombreZona
+        @if (ViewBag.Huerto != null)
+        {
+            <br><strong>🌱 Huerto:</strong> @ViewBag.Huerto.NombreHuerto
+        }
+    </div>
+}
+
+<!-- Filtros simples -->
+<div class="card mb-3">
+    <div class="card-header">
+        <h6>🔍 Filtros Rápidos</h6>
+    </div>
+    <div class="card-body">
+        <div class="row">
+            <div class="col-md-4">
+                <label class="form-label">Por Zona</label>
+                <select onchange="filtrarPorZona(this.value)" class="form-control">
+                    <option value="">Todas las zonas</option>
+                    @if (ViewBag.TodasZonas != null)
+                    {
+                        @foreach (var zona in (List<ConnectedRoot.Models.Zona>)ViewBag.TodasZonas)
+                        {
+                            @if (ViewBag.ZonaSeleccionada?.ToString() == zona.Id)
+                            {
+                                <option value="@zona.Id" selected>@zona.NombreZona</option>
+                            }
+                            else
+                            {
+                                <option value="@zona.Id">@zona.NombreZona</option>
+                            }
+                        }
+                    }
+                </select>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Por Estado</label>
+                <div class="btn-group d-block">
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada })" 
+                       class="btn btn-sm @(ViewBag.EstadoSeleccionado == null ? "btn-primary" : "btn-outline-primary")">
+                        Todos
+                    </a>
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada, estado = "Germinando" })" 
+                       class="btn btn-sm @(ViewBag.EstadoSeleccionado == "Germinando" ? "btn-info" : "btn-outline-info")">
+                        Germinando
+                    </a>
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada, estado = "Crecimiento" })" 
+                       class="btn btn-sm @(ViewBag.EstadoSeleccionado == "Crecimiento" ? "btn-success" : "btn-outline-success")">
+                        Crecimiento
+                    </a>
+                </div>
+            </div>
+            <div class="col-md-4">
+                <label class="form-label">Por Tipo</label>
+                <div class="btn-group d-block">
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada, tipoCultivo = "Hortaliza" })" 
+                       class="btn btn-sm @(ViewBag.TipoCultivoSeleccionado == "Hortaliza" ? "btn-success" : "btn-outline-success")">
+                        Hortalizas
+                    </a>
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada, tipoCultivo = "Frutal" })" 
+                       class="btn btn-sm @(ViewBag.TipoCultivoSeleccionado == "Frutal" ? "btn-warning" : "btn-outline-warning")">
+                        Frutales
+                    </a>
+                    <a href="@Url.Action("Index", new { zonaId = ViewBag.ZonaSeleccionada, tipoCultivo = "Aromática" })" 
+                       class="btn btn-sm @(ViewBag.TipoCultivoSeleccionado == "Aromática" ? "btn-info" : "btn-outline-info")">
+                        Aromáticas
+                    </a>
+                </div>
+            </div>
+        </div>
+    </div>
+</div>
+
+<!-- Botones de acción -->
+<div class="mb-3">
+    <a asp-action="Create" asp-route-zonaId="@ViewBag.ZonaSeleccionada" class="btn btn-success">
+        <i class="fas fa-plus"></i> Registrar Nueva Planta
+    </a>
+    <a asp-controller="Zona" asp-action="Index" class="btn btn-secondary">
+        <i class="fas fa-map"></i> Ver Zonas
+    </a>
+</div>
+
+@if (Model.Count == 0)
+{
+    <div class="alert alert-info">
+        <h4>🌱 No hay plantas registradas</h4>
+        @if (ViewBag.Zona != null)
+        {
+            <p>Esta zona aún no tiene plantas registradas.</p>
+        }
+        else
+        {
+            <p>No hay plantas registradas en el sistema.</p>
+        }
+        <p>Comienza registrando tu primera planta para hacer seguimiento de su crecimiento.</p>
+    </div>
+}
+else
+{
+    <div class="row">
+        @foreach (var planta in Model)
+        {
+            
+                var diasDesdeSiembra = (DateTime.Now - planta.FechaSiembra).Days;
+                var estadoColor = planta.Estado switch
+                {
+                    "Germinando" => "info",
+                    "Crecimiento" => "success",
+                    "Floración" => "warning",
+                    "Cosecha" => "danger",
+                    _ => "secondary"
+                };
+                var tipoIcon = planta.TipoCultivo.ToLower() switch
+                {
+                    "hortaliza" => "fas fa-carrot",
+                    "frutal" => "fas fa-apple-alt",
+                    "aromática" => "fas fa-leaf",
+                    _ => "fas fa-seedling"
+                };
+            
+            <div class="col-md-6 col-lg-4 mb-3">
+                <div class="card h-100">
+                    <div class="card-header bg-@estadoColor text-white">
+                        <div class="d-flex justify-content-between align-items-center">
+                            <div>
+                                <h6 class="card-title mb-0">
+                                    <i class="@tipoIcon"></i> @planta.NombreComun
+                                </h6>
+                                <small>@planta.NombreCientifico</small>
+                            </div>
+                            <span class="badge bg-light text-@estadoColor">
+                                @planta.Estado
+                            </span>
+                        </div>
+                    </div>
+                    <div class="card-body">
+                        @if (ViewBag.Zonas != null && ViewBag.Zonas.ContainsKey(planta.ZonaId))
+                        {
+                            <p class="card-text">
+                                <strong>📍 Zona:</strong><br>
+                                @ViewBag.Zonas[planta.ZonaId]
+                            </p>
+                        }
+                        
+                        <p class="card-text">
+                            <strong>🗂️ Tipo:</strong> @planta.TipoCultivo<br>
+                            <strong>📅 Sembrada:</strong> @planta.FechaSiembra.ToString("dd/MM/yyyy")<br>
+                            <strong>⏰ Días:</strong> @diasDesdeSiembra días
+                        </p>
+                        
+                        @if (!string.IsNullOrEmpty(planta.Notas))
+                        {
+                            <p class="card-text">
+                                <strong>📝 Notas:</strong><br>
+                                <small>@(planta.Notas.Length > 50 ? planta.Notas.Substring(0, 50) + "..." : planta.Notas)</small>
+                            </p>
+                        }
+                    </div>
+                    <div class="card-footer">
+                        <a asp-action="Details" asp-route-id="@planta.Id" class="btn btn-primary btn-sm">
+                            <i class="fas fa-eye"></i> Ver Detalles
+                        </a>
+                        <a asp-action="Edit" asp-route-id="@planta.Id" class="btn btn-warning btn-sm">
+                            <i class="fas fa-edit"></i> Editar
+                        </a>
+                    </div>
+                </div>
+            </div>
+        }
+    </div>
+}
+
+<script>
+function filtrarPorZona(zonaId) {
+    if (zonaId) {
+        window.location.href = '@Url.Action("Index")?zonaId=' + zonaId;
+    } else {
+        window.location.href = '@Url.Action("Index")';
+    }
+}
+</script>

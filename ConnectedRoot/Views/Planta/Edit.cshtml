@@ -1,0 +1,134 @@
+@model ConnectedRoot.Models.Planta
+
+@{
+    ViewData["Title"] = "Editar " + Model.NombreComun;
+}
+
+<h2>✏️ Editar Planta: @Model.NombreComun</h2>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger">
+        @ViewBag.Error
+    </div>
+}
+
+<form asp-action="Edit" method="post">
+    <input type="hidden" asp-for="Id" />
+    
+    <div class="row">
+        <div class="col-md-8">
+            <div class="card">
+                <div class="card-header bg-warning text-white">
+                    <h5>Actualizar Información</h5>
+                </div>
+                <div class="card-body">
+                    <div class="form-group mb-3">
+                        <label asp-for="ZonaId" class="form-label">Zona de Cultivo</label>
+                        <select asp-for="ZonaId" class="form-control" required>
+                            <option value="">Seleccionar zona...</option>
+                            @foreach (var zona in ViewBag.ZonasConHuerto)
+                            {
+                                @if (Model.ZonaId == zona.ZonaId)
+                                {
+                                    <option value="@zona.ZonaId" selected>@zona.Display</option>
+                                }
+                                else
+                                {
+                                    <option value="@zona.ZonaId">@zona.Display</option>
+                                }
+                            }
+                        </select>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreComun" class="form-label">Nombre Común</label>
+                                <input asp-for="NombreComun" class="form-control" required />
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreCientifico" class="form-label">Nombre Científico</label>
+                                <input asp-for="NombreCientifico" class="form-control" />
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="TipoCultivo" class="form-label">Tipo de Cultivo</label>
+                                <select asp-for="TipoCultivo" class="form-control" required>
+                                    <option value="">Seleccionar tipo...</option>
+                                    <option value="Hortaliza">🥕 Hortaliza</option>
+                                    <option value="Frutal">🍎 Frutal</option>
+                                    <option value="Aromática">🌿 Aromática</option>
+                                    <option value="Legumbre">🫘 Legumbre</option>
+                                    <option value="Cereal">🌾 Cereal</option>
+                                    <option value="Ornamental">🌺 Ornamental</option>
+                                </select>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Estado" class="form-label">Estado Actual</label>
+                                <select asp-for="Estado" class="form-control" required>
+                                    <option value="Germinando">🌱 Germinando</option>
+                                    <option value="Crecimiento">🌿 Crecimiento</option>
+                                    <option value="Floración">🌸 Floración</option>
+                                    <option value="Fructificación">🍅 Fructificación</option>
+                                    <option value="Cosecha">🧺 Cosecha</option>
+                                    <option value="Finalizado">✅ Finalizado</option>
+                                </select>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="FechaSiembra" class="form-label">Fecha de Siembra</label>
+                        <input asp-for="FechaSiembra" type="date" class="form-control" required />
+                    </div>
+
+                    <div class="form-group mb-3">
+                        <label asp-for="Notas" class="form-label">Notas de Cuidado</label>
+                        <textarea asp-for="Notas" class="form-control" rows="4" placeholder="Actualiza las observaciones sobre la planta..."></textarea>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <div class="col-md-4">
+            <div class="card">
+                <div class="card-header bg-info text-white">
+                    <h6>📋 Cambios de Estado</h6>
+                </div>
+                <div class="card-body">
+                    <div class="alert alert-info">
+                        <strong>Estado actual:</strong> @Model.Estado
+                    </div>
+                    
+                    <p><strong>Progresión típica:</strong></p>
+                    <ol>
+                        <li>🌱 Germinando</li>
+                        <li>🌿 Crecimiento</li>
+                        <li>🌸 Floración</li>
+                        <li>🍅 Fructificación</li>
+                        <li>🧺 Cosecha</li>
+                        <li>✅ Finalizado</li>
+                    </ol>
+                    
+                    <div class="alert alert-warning mt-3">
+                        <small><strong>💡 Tip:</strong> Actualiza el estado según el desarrollo real de la planta.</small>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <div class="form-group mt-3">
+        <input type="submit" value="💾 Guardar Cambios" class="btn btn-success btn-lg" />
+        <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-secondary btn-lg">Cancelar</a>
+    </div>
+</form>

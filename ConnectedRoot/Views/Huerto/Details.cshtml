@@ -1,0 +1,446 @@
+@model ConnectedRoot.Models.Huerto
+
+@{
+    ViewData["Title"] = "Detalles del Huerto";
+    var responsable = ViewBag.Responsable as ConnectedRoot.Models.Usuario;
+    var zonas = ViewBag.Zonas as List<ConnectedRoot.Models.Zona> ?? new List<ConnectedRoot.Models.Zona>();
+    var sensores = ViewBag.Sensores as List<ConnectedRoot.Models.Sensor> ?? new List<ConnectedRoot.Models.Sensor>();
+    var plantas = ViewBag.Plantas as List<ConnectedRoot.Models.Planta> ?? new List<ConnectedRoot.Models.Planta>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-seedling"></i> Detalles del Huerto
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-seedling"></i> Huertos
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalles</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información Principal -->
+        <div class="card shadow-sm">
+            <div class="card-header @(Model.Estado == "activo" ? "bg-success" : "bg-secondary") text-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-leaf"></i> @Model.NombreHuerto
+                        </h5>
+                        <small class="text-white-50">Registrado el @Model.FechaRegistro.ToString("dd/MM/yyyy")</small>
+                    </div>
+                    <div>
+                        @if (Model.Estado == "activo")
+                        {
+                            <span class="badge bg-light text-success fs-6">
+                                <i class="fas fa-check-circle"></i> Activo
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-danger fs-6">
+                                <i class="fas fa-times-circle"></i> Inactivo
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-info-circle"></i> Información General
+                        </h6>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8">
+                                <code>@Model.Id</code>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('@Model.Id')" title="Copiar ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Nombre:</dt>
+                            <dd class="col-sm-8">@Model.NombreHuerto</dd>
+                            
+                            <dt class="col-sm-4">Ubicación:</dt>
+                            <dd class="col-sm-8">
+                                <i class="fas fa-map-marker-alt text-primary"></i>
+                                @Model.Ubicacion
+                                <a href="https://www.google.com/maps/search/@Uri.EscapeDataString(Model.Ubicacion)" 
+                                   target="_blank" 
+                                   class="btn btn-sm btn-outline-primary ms-2"
+                                   title="Ver en Google Maps">
+                                    <i class="fas fa-external-link-alt"></i>
+                                </a>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Fecha Registro:</dt>
+                            <dd class="col-sm-8">
+                                @Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")
+                                <br><small class="text-muted">
+                                    Hace @{
+                                        var dias = (DateTime.Now - Model.FechaRegistro).Days;
+                                        var texto = dias == 0 ? "hoy" : 
+                                                   dias == 1 ? "1 día" : 
+                                                   dias < 30 ? $"{dias} días" :
+                                                   dias < 365 ? $"{dias/30} meses" : $"{dias/365} años";
+                                    }
+                                    @texto
+                                </small>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Estado == "activo")
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Operativo
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-pause"></i> Inactivo
+                                    </span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-user-tie"></i> Responsable
+                        </h6>
+                        
+                        @if (responsable != null)
+                        {
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info">
+                                        <i class="fas fa-user"></i>
+                                        @responsable.Nombre @responsable.PrimerApellido
+                                        @if (!string.IsNullOrEmpty(responsable.SegundoApellido))
+                                        {
+                                            @responsable.SegundoApellido
+                                        }
+                                    </h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-envelope"></i> @responsable.Correo<br>
+                                            <i class="fas fa-tag"></i> @responsable.Rol<br>
+                                            <i class="fas fa-circle text-@(responsable.Activo ? "success" : "danger")"></i>
+                                            @(responsable.Activo ? "Activo" : "Inactivo")
+                                        </small>
+                                    </p>
+                                    <a asp-controller="Usuario" asp-action="Details" asp-route-id="@responsable.Id" 
+                                       class="btn btn-sm btn-outline-info">
+                                        <i class="fas fa-eye"></i> Ver perfil
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No hay responsable asignado
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Zonas del Huerto -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt"></i> Zonas del Huerto
+                    </h5>
+                    <span class="badge bg-primary">@zonas.Count zona(s)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!zonas.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-map text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay zonas registradas en este huerto.</p>
+                        <a href="#" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus"></i> Agregar primera zona
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        @foreach (var zona in zonas)
+                        {
+                            <div class="col-md-6 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title">
+                                            <i class="fas fa-map-pin text-success"></i>
+                                            @zona.NombreZona
+                                        </h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">@zona.Descripcion</small><br>
+                                            <small class="text-info">Tipo: @zona.TipoZona</small>
+                                        </p>
+                                        @if (zona.Coordenadas != null)
+                                        {
+                                            <small class="text-muted">
+                                                <i class="fas fa-crosshairs"></i>
+                                                @zona.Coordenadas.Latitud, @zona.Coordenadas.Longitud
+                                            </small>
+                                        }
+                                        <div class="mt-2">
+                                            <a href="#" class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-eye"></i> Ver zona
+                                            </a>
+                                        </div>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Sensores y Monitoreo -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-microchip"></i> Sensores y Monitoreo
+                    </h5>
+                    <span class="badge bg-info">@sensores.Count sensor(es)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!sensores.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-microchip text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay sensores instalados en este huerto.</p>
+                        <a href="#" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-plus"></i> Instalar sensores
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        @foreach (var sensor in sensores.Take(6))
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-info">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-thermometer-half text-info fa-2x mb-2"></i>
+                                        <h6 class="card-title">@sensor.Tipo</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                @sensor.Modelo<br>
+                                                <span class="badge bg-@(sensor.Estado == "activo" ? "success" : "danger")">
+                                                    @sensor.Estado
+                                                </span>
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (sensores.Count > 6)
+                    {
+                        <div class="text-center">
+                            <a href="#" class="btn btn-outline-info">
+                                <i class="fas fa-eye"></i> Ver todos los sensores (@sensores.Count)
+                            </a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Acciones Rápidas -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Acciones Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Huerto
+                    </a>
+                    
+                    <form asp-action="ToggleStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" 
+                                class="btn @(Model.Estado == "activo" ? "btn-outline-danger" : "btn-outline-success") w-100"
+                                onclick="return confirm('@(Model.Estado == "activo" ? "¿Desactivar este huerto?" : "¿Activar este huerto?")')">
+                            <i class="fas @(Model.Estado == "activo" ? "fa-pause" : "fa-play")"></i> 
+                            @(Model.Estado == "activo" ? "Desactivar" : "Activar")
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <a href="#" class="btn btn-success">
+                        <i class="fas fa-plus"></i> Agregar Zona
+                    </a>
+                    
+                    <a href="#" class="btn btn-info">
+                        <i class="fas fa-microchip"></i> Instalar Sensores
+                    </a>
+                    
+                    <a href="#" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> Ver Reportes
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Estadísticas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-success mb-0">@zonas.Count</h4>
+                        <small class="text-muted">Zonas</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-info mb-0">@sensores.Count</h4>
+                        <small class="text-muted">Sensores</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-warning mb-0">@plantas.Count</h4>
+                        <small class="text-muted">Plantas</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-danger mb-0">0</h4>
+                        <small class="text-muted">Alertas</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-calendar"></i>
+                        Activo desde hace @{
+                            var diasActivo = (DateTime.Now - Model.FechaRegistro).Days;
+                            var textoActivo = diasActivo == 0 ? "hoy" : 
+                                           diasActivo == 1 ? "1 día" : 
+                                           diasActivo < 30 ? $"{diasActivo} días" :
+                                           diasActivo < 365 ? $"{diasActivo/30} meses" : $"{diasActivo/365} años";
+                        }
+                        @textoActivo
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado del Sistema -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-heartbeat"></i> Estado del Sistema
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Conectividad:</span>
+                        <span class="badge bg-success">
+                            <i class="fas fa-wifi"></i> Online
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Sensores activos:</span>
+                        <span class="text-info">@sensores.Count(s => s.Estado == "activo")/@sensores.Count</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Última lectura:</span>
+                        <span class="text-muted">
+                            <small>Hace 5 min</small>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" style="width: 85%"></div>
+                </div>
+                <small class="text-muted">Salud del sistema: 85%</small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Mostrar notificación de éxito
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check"></i> ID copiado al portapapeles
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                // Remover el toast después de que se oculte
+                toast.addEventListener('hidden.bs.toast', function() {
+                    document.body.removeChild(toast);
+                });
+            });
+        }
+    </script>
+}

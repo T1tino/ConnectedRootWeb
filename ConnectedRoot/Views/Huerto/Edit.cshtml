@@ -1,0 +1,279 @@
+@model ConnectedRoot.Models.Huerto
+
+@{
+    ViewData["Title"] = "Editar Huerto";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-edit"></i> Editar Huerto
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-seedling"></i> Huertos
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Editar</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Edit" method="post">
+            @Html.AntiForgeryToken()
+            <input asp-for="Id" type="hidden" />
+
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-seedling"></i> Información del Huerto
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreHuerto" class="form-label">Nombre del Huerto <span
+                                        class="text-danger">*</span></label>
+                                <input asp-for="NombreHuerto" class="form-control"
+                                    placeholder="Ingresa el nombre del huerto" required />
+                                <span asp-validation-for="NombreHuerto" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Ubicacion" class="form-label">Ubicación <span
+                                        class="text-danger">*</span></label>
+                                <textarea asp-for="Ubicacion" class="form-control" rows="3"
+                                    placeholder="Ingresa la dirección completa del huerto" required></textarea>
+                                <span asp-validation-for="Ubicacion" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="ResponsableId" class="form-label">Responsable <span
+                                        class="text-danger">*</span></label>
+                                <select asp-for="ResponsableId" class="form-select" required>
+                                    <option value="">-- Selecciona un responsable --</option>
+                                    @{
+                                        var usuarios = ViewBag.Usuarios as List<ConnectedRoot.Models.Usuario>;
+                                    }
+                                    @if (usuarios != null)
+                                    {
+                                        @foreach (var usuario in usuarios)
+                                        {
+                                            @if (usuario != null)
+                                            {
+                                                <option value="@usuario.Id">
+                                                    @usuario.Nombre @usuario.PrimerApellido
+                                                    @if (!string.IsNullOrEmpty(usuario.SegundoApellido))
+                                                    {
+                                                        @usuario.SegundoApellido
+                                                    }
+                                                    (@usuario.Correo)
+                                                </option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="ResponsableId" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Estado" class="form-label">Estado <span
+                                        class="text-danger">*</span></label>
+                                <select asp-for="Estado" class="form-select" required>
+                                    <option value="activo">🟢 Activo</option>
+                                    <option value="inactivo">🔴 Inactivo</option>
+                                </select>
+                                <span asp-validation-for="Estado" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                    <a asp-action="Details" asp-route-id="@Model.Id" class="btn btn-outline-info">
+                        <i class="fas fa-eye"></i> Ver detalles
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Restablecer
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Guardar Cambios
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Información de Edición
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>ID del Huerto:</strong><br>
+                    <code>@Model.Id</code><br><br>
+
+                    <strong>Fecha de Registro:</strong><br>
+                    @Model.FechaRegistro.ToString("dd/MM/yyyy HH:mm")<br><br>
+
+                    <strong>Campos editables:</strong><br>
+                    • Nombre del huerto<br>
+                    • Ubicación completa<br>
+                    • Responsable asignado<br>
+                    • Estado (activo/inactivo)<br><br>
+
+                    <strong>Validaciones:</strong><br>
+                    • El nombre debe ser único<br>
+                    • Todos los campos marcados con * son obligatorios<br>
+                    • El responsable debe estar activo
+                </small>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-history"></i> Estado Actual
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-2">
+                    <strong>Estado:</strong>
+                    <span class="badge @(Model.Estado == "activo" ? "bg-success" : "bg-danger") ms-1">
+                        @(Model.Estado == "activo" ? "Activo" : "Inactivo")
+                    </span>
+                </div>
+                <div class="mb-2">
+                    <strong>Registrado hace:</strong>
+                    <span class="badge bg-info ms-1">
+                        @{
+                            var dias = (DateTime.Now - Model.FechaRegistro).Days;
+                            var texto = dias == 0 ? "Hoy" :
+                            dias == 1 ? "1 día" :
+                            dias < 30 ? $"{dias} días" :
+                            dias < 365 ? $"{dias / 30} meses" : $"{dias / 365} años";
+                        }
+                        @texto
+                    </span>
+                </div>
+            </div>
+        </div>
+
+        @if (ViewBag.Zonas != null && ((List<ConnectedRoot.Models.Zona>)ViewBag.Zonas).Count > 0)
+        {
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h6 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt"></i> Zonas del Huerto
+                    </h6>
+                </div>
+                <div class="card-body">
+                    <small class="text-muted">
+                        Este huerto tiene <strong>@((List<ConnectedRoot.Models.Zona>)ViewBag.Zonas).Count zona(s)</strong>
+                        registrada(s).
+                    </small>
+                </div>
+            </div>
+        }
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validación en tiempo real del nombre
+        document.getElementById('NombreHuerto').addEventListener('blur', function () {
+            const nombre = this.value.trim();
+
+            if (nombre.length < 3) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Validación de ubicación
+        document.getElementById('Ubicacion').addEventListener('blur', function () {
+            const ubicacion = this.value.trim();
+
+            if (ubicacion.length < 10) {
+                this.classList.add('is-invalid');
+            } else {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            }
+        });
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de restablecer todos los cambios?')) {
+                document.querySelector('form').reset();
+                // Remove validation classes
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function (element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function () {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function (alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function () {
+            formChanged = true;
+        });
+
+        // Warn before leaving if form has changes
+        window.addEventListener('beforeunload', function (e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        // Reset form changed flag on submit
+        document.querySelector('form').addEventListener('submit', function () {
+            formChanged = false;
+        });
+    </script>
+}

@@ -1,0 +1,654 @@
+@model ConnectedRoot.Models.Alerta
+@using ConnectedRoot.Models
+
+@{
+    ViewData["Title"] = "Detalles de la Alerta";
+    var zona = ViewBag.Zona as Zona;
+    var huerto = ViewBag.Huerto as Huerto;
+    var responsable = ViewBag.Responsable as Usuario;
+    var alertasRelacionadas = ViewBag.AlertasRelacionadas as List<Alerta> ?? new List<Alerta>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-exclamation-triangle"></i> Detalles de la Alerta
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-exclamation-triangle"></i> Alertas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalles</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información Principal -->
+        <div class="card shadow-sm">
+            <div class="card-header @(Model.Estado == "pendiente" ? "bg-danger" : "bg-success") text-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            @switch (Model.Tipo.ToLower())
+                            {
+                                case var t when t.Contains("temperatura"):
+                                    <i class="fas fa-thermometer-full"></i>
+                                    break;
+                                case var t when t.Contains("humedad"):
+                                    <i class="fas fa-tint"></i>
+                                    break;
+                                case var t when t.Contains("sensor"):
+                                    <i class="fas fa-wifi"></i>
+                                    break;
+                                case var t when t.Contains("plagas"):
+                                    <i class="fas fa-bug"></i>
+                                    break;
+                                case var t when t.Contains("mantenimiento"):
+                                    <i class="fas fa-wrench"></i>
+                                    break;
+                                default:
+                                    <i class="fas fa-exclamation-triangle"></i>
+                                    break;
+                            }
+                            @Model.Tipo
+                        </h5>
+                        <small class="text-white-50">Registrada el @Model.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                    </div>
+                    <div class="text-center">
+                        <span class="badge @(Model.Estado == "pendiente" ? "bg-warning" : "bg-light") text-dark fs-6">
+                            @(Model.Estado == "pendiente" ? "PENDIENTE" : "RESUELTA")
+                        </span>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-info-circle"></i> Información de la Alerta
+                        </h6>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8">
+                                <code>@Model.Id</code>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('@Model.Id')" title="Copiar ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Tipo:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge @(Model.Estado == "pendiente" ? "bg-danger" : "bg-success")">
+                                    @Model.Tipo
+                                </span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Valor Crítico:</dt>
+                            <dd class="col-sm-8">
+                                <strong class="h4 @(Model.Estado == "pendiente" ? "text-danger" : "text-success")">
+                                    @Model.ValorRegistrado.ToString("F2")
+                                </strong>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Rango Normal:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.UmbralMinimo != 0 || Model.UmbralMaximo != 0)
+                                {
+                                    <span class="text-muted">@Model.UmbralMinimo.ToString("F1") - @Model.UmbralMaximo.ToString("F1")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No definido</span>
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Umbral Violado:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.ValorUmbralViolado != 0)
+                                {
+                                    <span class="text-warning">@Model.ValorUmbralViolado.ToString("F2")</span>
+                                }
+                                else
+                                {
+                                    <span class="text-muted">No especificado</span>
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Fecha/Hora:</dt>
+                            <dd class="col-sm-8">
+                                @Model.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")
+                                <br><small class="text-muted">
+                                    Hace @{
+                                        var tiempo = DateTime.Now - Model.FechaHora;
+                                        var textoTiempo = tiempo.TotalMinutes < 60 ? $"{(int)tiempo.TotalMinutes} minutos" :
+                                                        tiempo.TotalHours < 24 ? $"{(int)tiempo.TotalHours} horas" :
+                                                        $"{(int)tiempo.TotalDays} días";
+                                    }
+                                    @textoTiempo
+                                </small>
+                            </dd>
+
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Estado == "pendiente")
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-exclamation-triangle"></i> REQUIERE ATENCIÓN
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> RESUELTA
+                                    </span>
+                                }
+                            </dd>
+
+                            <dt class="col-sm-4">Notificación:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Enviada)
+                                {
+                                    <span class="badge bg-info">
+                                        <i class="fas fa-envelope"></i> Enviada
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-secondary">
+                                        <i class="fas fa-envelope-open"></i> No enviada
+                                    </span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-map-marked-alt"></i> Ubicación y Contexto
+                        </h6>
+                        
+                        @if (zona != null)
+                        {
+                            <div class="card border-warning">
+                                <div class="card-body">
+                                    <h6 class="card-title text-warning">
+                                        <i class="fas fa-map-pin"></i>
+                                        @zona.NombreZona
+                                    </h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <strong>Tipo de zona:</strong> @zona.TipoZona<br>
+                                            <strong>Estado:</strong> 
+                                            <span class="text-@(zona.Estado == "activa" ? "success" : "danger")">
+                                                @zona.Estado
+                                            </span>
+                                        </small>
+                                    </p>
+                                    
+                                    @if (huerto != null)
+                                    {
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <strong>Huerto:</strong><br>
+                                                <i class="fas fa-leaf"></i> @huerto.NombreHuerto<br>
+                                                <i class="fas fa-map-marker-alt"></i> @huerto.Ubicacion
+                                            </small>
+                                        </p>
+                                        
+                                        @if (responsable != null)
+                                        {
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <strong>Responsable:</strong><br>
+                                                    <i class="fas fa-user"></i> @responsable.Nombre @responsable.PrimerApellido<br>
+                                                    <i class="fas fa-envelope"></i> @responsable.Correo
+                                                </small>
+                                            </p>
+                                        }
+                                    }
+                                    
+                                    <div class="btn-group w-100" role="group">
+                                        <a asp-controller="Zona" asp-action="Details" asp-route-id="@zona.Id" 
+                                           class="btn btn-sm btn-outline-warning">
+                                            <i class="fas fa-eye"></i> Ver zona
+                                        </a>
+                                        @if (huerto != null)
+                                        {
+                                            <a asp-controller="Huerto" asp-action="Details" asp-route-id="@huerto.Id" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-seedling"></i> Ver huerto
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No se encontró información de la zona
+                            </div>
+                        }
+                    </div>
+                </div>
+
+                @if (!string.IsNullOrEmpty(Model.Mensaje))
+                {
+                    <hr>
+                    <div class="row">
+                        <div class="col-12">
+                            <h6 class="text-muted mb-3">
+                                <i class="fas fa-comment-alt"></i> Mensaje de la Alerta
+                            </h6>
+                            <div class="alert alert-@(Model.Estado == "pendiente" ? "warning" : "info")">
+                                <p class="mb-0">@Model.Mensaje</p>
+                            </div>
+                        </div>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Análisis de Criticidad -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-bar"></i> Análisis de Criticidad
+                </h5>
+            </div>
+            <div class="card-body">
+                @{
+                    var criticidad = "Media";
+                    var colorCriticidad = "warning";
+                    var porcentajeDesviacion = 0.0;
+                    var recomendacion = "";
+                    
+                    if (Model.UmbralMinimo != 0 && Model.UmbralMaximo != 0)
+                    {
+                        var rango = Model.UmbralMaximo - Model.UmbralMinimo;
+                        if (Model.ValorRegistrado < Model.UmbralMinimo)
+                        {
+                            porcentajeDesviacion = ((Model.UmbralMinimo - Model.ValorRegistrado) / rango) * 100;
+                        }
+                        else if (Model.ValorRegistrado > Model.UmbralMaximo)
+                        {
+                            porcentajeDesviacion = ((Model.ValorRegistrado - Model.UmbralMaximo) / rango) * 100;
+                        }
+                        
+                        if (porcentajeDesviacion > 50)
+                        {
+                            criticidad = "Crítica";
+                            colorCriticidad = "danger";
+                            recomendacion = "Acción inmediata requerida. Condiciones extremas detectadas.";
+                        }
+                        else if (porcentajeDesviacion > 20)
+                        {
+                            criticidad = "Alta";
+                            colorCriticidad = "warning";
+                            recomendacion = "Atención requerida pronto. Monitorear de cerca.";
+                        }
+                        else
+                        {
+                            criticidad = "Media";
+                            colorCriticidad = "info";
+                            recomendacion = "Situación controlable. Revisar cuando sea conveniente.";
+                        }
+                    }
+                }
+                
+                <div class="row">
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-@colorCriticidad">@criticidad</h4>
+                            <small class="text-muted">Nivel de Criticidad</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-primary">@porcentajeDesviacion.ToString("F1")%</h4>
+                            <small class="text-muted">Desviación del Rango</small>
+                        </div>
+                    </div>
+                    <div class="col-md-4">
+                        <div class="text-center">
+                            <h4 class="text-@(Model.Estado == "pendiente" ? "danger" : "success")">
+                                @(Model.Estado == "pendiente" ? "ACTIVA" : "RESUELTA")
+                            </h4>
+                            <small class="text-muted">Estado Actual</small>
+                        </div>
+                    </div>
+                </div>
+                
+                @if (!string.IsNullOrEmpty(recomendacion))
+                {
+                    <hr>
+                    <div class="alert alert-@colorCriticidad">
+                        <strong>Recomendación:</strong> @recomendacion
+                    </div>
+                }
+                
+                <div class="progress mt-3" style="height: 20px;">
+                    <div class="progress-bar bg-@colorCriticidad" role="progressbar" 
+                         style="width: @Math.Min(porcentajeDesviacion, 100)%" 
+                         aria-valuenow="@porcentajeDesviacion" aria-valuemin="0" aria-valuemax="100">
+                        @porcentajeDesviacion.ToString("F1")% fuera del rango
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Alertas Relacionadas -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Alertas Relacionadas
+                    </h5>
+                    <span class="badge bg-info">@alertasRelacionadas.Count alerta(s)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!alertasRelacionadas.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-check-circle text-success fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay otras alertas en esta zona.</p>
+                        <small class="text-muted">Esta es la única alerta registrada para la zona seleccionada.</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Estado</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var alerta in alertasRelacionadas)
+                                {
+                                    <tr>
+                                        <td>
+                                            <small>@alerta.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </td>
+                                        <td>@alerta.Tipo</td>
+                                        <td>
+                                            <strong>@alerta.ValorRegistrado.ToString("F2")</strong>
+                                        </td>
+                                        <td>
+                                            <span class="badge bg-@(alerta.Estado == "pendiente" ? "danger" : "success")">
+                                                @alerta.Estado
+                                            </span>
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a asp-action="Index" asp-route-filtroZona="@Model.ZonaId" class="btn btn-outline-info">
+                            <i class="fas fa-eye"></i> Ver todas las alertas de esta zona
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Acciones Rápidas -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Acciones Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Alerta
+                    </a>
+                    
+                    <form asp-action="ToggleStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" 
+                                class="btn @(Model.Estado == "pendiente" ? "btn-success" : "btn-outline-danger") w-100"
+                                onclick="return confirm('@(Model.Estado == "pendiente" ? "¿Marcar como resuelta?" : "¿Marcar como pendiente?")')">
+                            <i class="fas fa-@(Model.Estado == "pendiente" ? "check" : "undo")"></i> 
+                            @(Model.Estado == "pendiente" ? "Marcar como Resuelta" : "Marcar como Pendiente")
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    @if (zona != null)
+                    {
+                        <a asp-controller="Lectura" asp-action="Create" asp-route-zonaId="@zona.Id" class="btn btn-primary">
+                            <i class="fas fa-chart-line"></i> Registrar Lectura
+                        </a>
+                        
+                        <a asp-action="Create" asp-route-zonaId="@zona.Id" class="btn btn-outline-warning">
+                            <i class="fas fa-plus"></i> Nueva Alerta (Misma Zona)
+                        </a>
+                    }
+                    
+                    <a asp-controller="Sensor" asp-action="Index" class="btn btn-outline-info">
+                        <i class="fas fa-microchip"></i> Ver Sensores
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluación de Impacto -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-impact"></i> Evaluación de Impacto
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var impacto = "Medio";
+                    var colorImpacto = "warning";
+                    var descripcionImpacto = "";
+                    
+                    if (Model.Tipo.ToLower().Contains("temperatura"))
+                    {
+                        if (Model.ValorRegistrado > 40 || Model.ValorRegistrado < 5)
+                        {
+                            impacto = "Alto";
+                            colorImpacto = "danger";
+                            descripcionImpacto = "Puede causar estrés severo o muerte de plantas.";
+                        }
+                        else
+                        {
+                            impacto = "Medio";
+                            colorImpacto = "warning";
+                            descripcionImpacto = "Puede afectar el crecimiento y desarrollo.";
+                        }
+                    }
+                    else if (Model.Tipo.ToLower().Contains("humedad"))
+                    {
+                        if (Model.ValorRegistrado < 20 || Model.ValorRegistrado > 95)
+                        {
+                            impacto = "Alto";
+                            colorImpacto = "danger";
+                            descripcionImpacto = "Riesgo de marchitez o enfermedades fúngicas.";
+                        }
+                        else
+                        {
+                            impacto = "Medio";
+                            colorImpacto = "warning";
+                            descripcionImpacto = "Puede afectar la absorción de nutrientes.";
+                        }
+                    }
+                    else
+                    {
+                        impacto = "Variable";
+                        colorImpacto = "info";
+                        descripcionImpacto = "El impacto depende de factores específicos.";
+                    }
+                }
+                
+                <div class="alert alert-@colorImpacto">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-@(colorImpacto == "danger" ? "exclamation-triangle" : colorImpacto == "warning" ? "exclamation" : "info-circle")"></i>
+                        Impacto @impacto
+                    </h6>
+                    <p class="mb-0">@descripcionImpacto</p>
+                </div>
+                
+                <small class="text-muted">
+                    <strong>Factores de riesgo:</strong><br>
+                    • Duración de la condición<br>
+                    • Tipo de cultivo afectado<br>
+                    • Época del año<br>
+                    • Condiciones meteorológicas<br>
+                    • Estado general de las plantas
+                </small>
+            </div>
+        </div>
+
+        <!-- Cronología -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-clock"></i> Cronología
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="timeline">
+                    <div class="timeline-item">
+                        <div class="timeline-marker bg-danger"></div>
+                        <div class="timeline-content">
+                            <h6 class="timeline-title">Alerta Generada</h6>
+                            <p class="timeline-description">@Model.FechaHora.ToString("dd/MM/yyyy HH:mm")</p>
+                        </div>
+                    </div>
+                    
+                    @if (Model.Estado == "resuelta")
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-success"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Alerta Resuelta</h6>
+                                <p class="timeline-description">Estado actualizado</p>
+                            </div>
+                        </div>
+                    }
+                    else
+                    {
+                        <div class="timeline-item">
+                            <div class="timeline-marker bg-warning"></div>
+                            <div class="timeline-content">
+                                <h6 class="timeline-title">Pendiente de Resolución</h6>
+                                <p class="timeline-description">Requiere atención</p>
+                            </div>
+                        </div>
+                    }
+                </div>
+                
+                <small class="text-muted">
+                    <strong>Tiempo transcurrido:</strong><br>
+                    @{
+                        var tiempoTotal = DateTime.Now - Model.FechaHora;
+                        var tiempoTexto = tiempoTotal.TotalHours < 24 ? 
+                            $"{(int)tiempoTotal.TotalHours}h {tiempoTotal.Minutes}m" :
+                            $"{(int)tiempoTotal.TotalDays} días";
+                    }
+                    @tiempoTexto desde la generación
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+<style>
+.timeline {
+    position: relative;
+    padding-left: 30px;
+}
+
+.timeline-item {
+    position: relative;
+    margin-bottom: 20px;
+}
+
+.timeline-marker {
+    position: absolute;
+    left: -35px;
+    top: 5px;
+    width: 12px;
+    height: 12px;
+    border-radius: 50%;
+    border: 2px solid #fff;
+    box-shadow: 0 0 0 2px #ddd;
+}
+
+.timeline::before {
+    content: '';
+    position: absolute;
+    left: -30px;
+    top: 0;
+    bottom: 0;
+    width: 2px;
+    background: #ddd;
+}
+
+.timeline-title {
+    font-size: 14px;
+    font-weight: bold;
+    margin-bottom: 5px;
+}
+
+.timeline-description {
+    font-size: 12px;
+    color: #666;
+    margin: 0;
+}
+</style>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check"></i> ID copiado al portapapeles
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                toast.addEventListener('hidden.bs.toast', function() {
+                    document.body.removeChild(toast);
+                });
+            });
+        }
+    </script>
+}

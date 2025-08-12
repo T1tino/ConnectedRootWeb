@@ -1,0 +1,364 @@
+/* ===== ESTILOS PARA PÁGINAS DE USUARIOS ===== */
+
+/* === ANIMACIONES PARA TOASTS === */
+@keyframes slideInRight {
+    from {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+    to {
+        opacity: 1;
+        transform: translateX(0);
+    }
+}
+
+@keyframes slideOutRight {
+    from {
+        opacity: 1;
+        transform: translateX(0);
+    }
+    to {
+        opacity: 0;
+        transform: translateX(100%);
+    }
+}
+
+/* === ANIMACIONES PARA ALERTAS === */
+@keyframes slideInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-20px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+@keyframes fadeInDown {
+    from {
+        opacity: 0;
+        transform: translateY(-10px);
+    }
+    to {
+        opacity: 1;
+        transform: translateY(0);
+    }
+}
+
+/* === EFECTO RIPPLE PARA BOTONES === */
+.ripple {
+    position: absolute;
+    border-radius: 50%;
+    background: rgba(255, 255, 255, 0.6);
+    transform: scale(0);
+    animation: ripple-animation 0.6s linear;
+    pointer-events: none;
+}
+
+@keyframes ripple-animation {
+    to {
+        transform: scale(4);
+        opacity: 0;
+    }
+}
+
+/* === ESTADOS DE CARGA PARA BOTONES === */
+.btn-group form.loading .btn {
+    pointer-events: none;
+    opacity: 0.7;
+    position: relative;
+}
+
+/* Spinner para botones en estado de carga */
+.btn-group form.loading .btn .fa-spinner {
+    animation: spin 1s linear infinite;
+}
+
+@keyframes spin {
+    from {
+        transform: rotate(0deg);
+    }
+    to {
+        transform: rotate(360deg);
+    }
+}
+
+/* === MEJORAS PARA ALERTAS === */
+.alert-dismissible {
+    animation: slideInDown 0.5s ease-out;
+}
+
+/* === MEJORAS PARA TOOLTIPS === */
+.tooltip {
+    z-index: 1070;
+}
+
+/* === ESTADOS DE VALIDACIÓN === */
+.is-invalid {
+    border-color: #dc3545;
+    box-shadow: 0 0 0 0.2rem rgba(220, 53, 69, 0.25);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.is-valid {
+    border-color: #28a745;
+    box-shadow: 0 0 0 0.2rem rgba(40, 167, 69, 0.25);
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+/* === MENSAJES DE ERROR DINÁMICOS === */
+.invalid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #dc3545;
+    animation: fadeInDown 0.3s ease;
+}
+
+.valid-feedback {
+    display: block;
+    width: 100%;
+    margin-top: 0.25rem;
+    font-size: 0.875rem;
+    color: #28a745;
+    animation: fadeInDown 0.3s ease;
+}
+
+/* === MEJORAS PARA TOASTS === */
+.toast-container {
+    z-index: 9999;
+}
+
+.toast {
+    min-width: 250px;
+    animation: slideInRight 0.5s ease-out;
+}
+
+.toast.hide {
+    animation: slideOutRight 0.5s ease-in;
+}
+
+/* === MEJORAS PARA TABLAS === */
+.table-hover tbody tr {
+    transition: all 0.2s ease;
+    position: relative;
+}
+
+.table-hover tbody tr:hover {
+    background-color: rgba(0, 0, 0, 0.025);
+    transform: scale(1.01);
+    z-index: 1;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* === MEJORAS PARA BOTONES === */
+.btn {
+    position: relative;
+    overflow: hidden;
+    transition: all 0.2s ease;
+}
+
+.btn:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.15);
+}
+
+.btn:active {
+    transform: translateY(0);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* === MEJORAS PARA FORMULARIOS === */
+.form-control {
+    transition: border-color 0.15s ease-in-out, box-shadow 0.15s ease-in-out;
+}
+
+.form-control:focus {
+    border-color: #80bdff;
+    outline: 0;
+    box-shadow: 0 0 0 0.2rem rgba(0, 123, 255, 0.25);
+}
+
+/* === MEJORAS PARA CARDS === */
+.card {
+    transition: all 0.2s ease;
+    border: 1px solid rgba(0, 0, 0, 0.125);
+}
+
+.card:hover {
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+    transform: translateY(-2px);
+}
+
+/* === MEJORAS PARA MODALES === */
+.modal-dialog {
+    transition: transform 0.3s ease-out;
+}
+
+.modal.fade .modal-dialog {
+    transform: translate(0, -50px);
+}
+
+.modal.show .modal-dialog {
+    transform: none;
+}
+
+/* === ESTADOS DE CARGA GLOBALES === */
+.loading {
+    position: relative;
+}
+
+.loading::after {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    width: 100%;
+    height: 100%;
+    background: rgba(255, 255, 255, 0.8);
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    z-index: 1000;
+}
+
+.loading::before {
+    content: '';
+    position: absolute;
+    top: 50%;
+    left: 50%;
+    width: 20px;
+    height: 20px;
+    margin: -10px 0 0 -10px;
+    border: 2px solid #f3f3f3;
+    border-top: 2px solid #007bff;
+    border-radius: 50%;
+    animation: spin 1s linear infinite;
+    z-index: 1001;
+}
+
+/* === MEJORAS PARA NAVEGACIÓN === */
+.nav-link {
+    transition: all 0.2s ease;
+}
+
+.nav-link:hover {
+    color: #007bff;
+    transform: translateX(5px);
+}
+
+/* === MEJORAS PARA BADGES === */
+.badge {
+    transition: all 0.2s ease;
+}
+
+.badge:hover {
+    transform: scale(1.1);
+}
+
+/* === AJUSTES RESPONSIVOS === */
+@media (max-width: 576px) {
+    .btn-group .btn {
+        font-size: 0.8rem;
+        padding: 0.5rem 0.75rem;
+    }
+    
+    .btn-group .btn .d-none.d-lg-inline {
+        display: none !important;
+    }
+    
+    .table-responsive {
+        font-size: 0.875rem;
+    }
+    
+    .card-body {
+        padding: 1rem 0.75rem;
+    }
+    
+    .modal-dialog {
+        margin: 0.5rem;
+    }
+}
+
+@media (max-width: 768px) {
+    .btn-group-vertical .btn {
+        margin-bottom: 0.25rem;
+    }
+    
+    .table thead th {
+        font-size: 0.875rem;
+    }
+}
+
+@media (max-width: 992px) {
+    .btn-group .btn {
+        padding: 0.5rem 1rem;
+    }
+}
+
+/* === UTILIDADES ADICIONALES === */
+.fade-in {
+    animation: fadeInDown 0.5s ease;
+}
+
+.slide-in-right {
+    animation: slideInRight 0.5s ease;
+}
+
+.slide-in-down {
+    animation: slideInDown 0.5s ease;
+}
+
+/* === MEJORAS PARA PAGINACIÓN === */
+.pagination .page-link {
+    transition: all 0.2s ease;
+}
+
+.pagination .page-link:hover {
+    transform: translateY(-1px);
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.1);
+}
+
+/* === MEJORAS PARA BREADCRUMBS === */
+.breadcrumb-item + .breadcrumb-item::before {
+    transition: all 0.2s ease;
+}
+
+.breadcrumb-item:hover + .breadcrumb-item::before {
+    color: #007bff;
+}
+
+/* === EFECTOS PARA ICONOS === */
+.fa, .fas, .far, .fab {
+    transition: all 0.2s ease;
+}
+
+.btn:hover .fa,
+.btn:hover .fas,
+.btn:hover .far,
+.btn:hover .fab {
+    transform: scale(1.1);
+}
+
+/* === MEJORAS PARA PROGRESS BARS === */
+.progress-bar {
+    transition: width 0.6s ease;
+}
+
+/* === MEJORAS PARA DROPDOWNS === */
+.dropdown-menu {
+    animation: slideInDown 0.2s ease;
+    border: none;
+    box-shadow: 0 4px 8px rgba(0, 0, 0, 0.1);
+}
+
+.dropdown-item {
+    transition: all 0.2s ease;
+}
+
+.dropdown-item:hover {
+    background-color: #f8f9fa;
+    transform: translateX(5px);
+}

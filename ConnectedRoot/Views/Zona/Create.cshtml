@@ -1,0 +1,350 @@
+@model ConnectedRoot.Models.Zona
+
+@{
+    ViewData["Title"] = "Crear Zona";
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-plus"></i> Crear Nueva Zona de Cultivo
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-map-marked-alt"></i> Zonas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Crear</li>
+        </ol>
+    </nav>
+</div>
+
+@if (!string.IsNullOrEmpty(ViewBag.Error))
+{
+    <div class="alert alert-danger alert-dismissible fade show" role="alert">
+        <i class="fas fa-exclamation-triangle"></i>
+        @ViewBag.Error
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+@if (!string.IsNullOrEmpty(ViewBag.NombreHuerto))
+{
+    <div class="alert alert-info alert-dismissible fade show" role="alert">
+        <i class="fas fa-info-circle"></i>
+        <strong>Creando zona para el huerto:</strong> @ViewBag.NombreHuerto
+        <button type="button" class="btn-close" data-bs-dismiss="alert"></button>
+    </div>
+}
+
+<div class="row">
+    <div class="col-md-8">
+        <form asp-action="Create" method="post">
+            @Html.AntiForgeryToken()
+            
+            <div class="card">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-marked-alt"></i> Información de la Zona
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="HuertoId" class="form-label">Huerto <span class="text-danger">*</span></label>
+                                <select asp-for="HuertoId" class="form-select" required>
+                                    <option value="">-- Selecciona un huerto --</option>
+                                    @if (ViewBag.Huertos != null)
+                                    {
+                                        @foreach (var huerto in (List<ConnectedRoot.Models.Huerto>)ViewBag.Huertos)
+                                        {
+                                            @if (ViewBag.HuertoSeleccionado?.ToString() == huerto.Id)
+                                            {
+                                                <option value="@huerto.Id" selected>@huerto.NombreHuerto</option>
+                                            }
+                                            else
+                                            {
+                                                <option value="@huerto.Id">@huerto.NombreHuerto</option>
+                                            }
+                                        }
+                                    }
+                                </select>
+                                <span asp-validation-for="HuertoId" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-seedling"></i> 
+                                    Solo se muestran huertos activos.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="NombreZona" class="form-label">Nombre de la Zona <span class="text-danger">*</span></label>
+                                <input asp-for="NombreZona" class="form-control" placeholder="Ej: Zona A - Hortalizas" required />
+                                <span asp-validation-for="NombreZona" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-info-circle"></i> 
+                                    Debe ser único dentro del huerto seleccionado.
+                                </div>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="TipoZona" class="form-label">Tipo de Zona <span class="text-danger">*</span></label>
+                                <select asp-for="TipoZona" class="form-select" required>
+                                    <option value="">-- Selecciona el tipo --</option>
+                                    <option value="Hortalizas">🥬 Hortalizas</option>
+                                    <option value="Frutales">🍎 Frutales</option>
+                                    <option value="Aromáticas">🌿 Aromáticas</option>
+                                    <option value="Semillero">🌱 Semillero</option>
+                                    <option value="Compostaje">♻️ Compostaje</option>
+                                    <option value="Invernadero">🏠 Invernadero</option>
+                                    <option value="Otro">📦 Otro</option>
+                                </select>
+                                <span asp-validation-for="TipoZona" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+
+                    <div class="row">
+                        <div class="col-md-12">
+                            <div class="form-group mb-3">
+                                <label asp-for="Descripcion" class="form-label">Descripción</label>
+                                <textarea asp-for="Descripcion" class="form-control" rows="3" 
+                                         placeholder="Describe las características de esta zona..."></textarea>
+                                <span asp-validation-for="Descripcion" class="text-danger"></span>
+                                <div class="form-text">
+                                    <i class="fas fa-edit"></i> 
+                                    Información adicional sobre el propósito y características de la zona.
+                                </div>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+            </div>
+
+            <!-- Coordenadas GPS -->
+            <div class="card mt-3">
+                <div class="card-header">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-map-pin"></i> Coordenadas GPS (Opcional)
+                    </h5>
+                </div>
+                <div class="card-body">
+                    <div class="row">
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Coordenadas.Latitud" class="form-label">Latitud</label>
+                                <input asp-for="Coordenadas.Latitud" type="number" step="0.000001" class="form-control" 
+                                       placeholder="Ej: 19.432608" />
+                                <span asp-validation-for="Coordenadas.Latitud" class="text-danger"></span>
+                            </div>
+                        </div>
+                        <div class="col-md-6">
+                            <div class="form-group mb-3">
+                                <label asp-for="Coordenadas.Longitud" class="form-label">Longitud</label>
+                                <input asp-for="Coordenadas.Longitud" type="number" step="0.000001" class="form-control" 
+                                       placeholder="Ej: -99.133209" />
+                                <span asp-validation-for="Coordenadas.Longitud" class="text-danger"></span>
+                            </div>
+                        </div>
+                    </div>
+                    <div class="alert alert-info">
+                        <i class="fas fa-lightbulb"></i>
+                        <strong>Consejo:</strong> Puedes obtener las coordenadas desde Google Maps, tu GPS móvil, o usar herramientas en línea de geolocalización.
+                    </div>
+                </div>
+            </div>
+
+            <div class="d-flex justify-content-between mt-4">
+                <div>
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la lista
+                    </a>
+                </div>
+                <div>
+                    <button type="button" class="btn btn-outline-danger" onclick="resetForm()">
+                        <i class="fas fa-undo"></i> Limpiar formulario
+                    </button>
+                    <button type="submit" class="btn btn-success">
+                        <i class="fas fa-save"></i> Crear Zona
+                    </button>
+                </div>
+            </div>
+        </form>
+    </div>
+
+    <div class="col-md-4">
+        <div class="card">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-lightbulb"></i> Instrucciones
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>Campos requeridos:</strong><br>
+                    • Huerto donde se ubicará<br>
+                    • Nombre único de la zona<br>
+                    • Tipo de zona<br><br>
+                    
+                    <strong>Tipos de zona:</strong><br>
+                    • <strong>Hortalizas:</strong> Verduras y vegetales<br>
+                    • <strong>Frutales:</strong> Árboles frutales<br>
+                    • <strong>Aromáticas:</strong> Hierbas y especias<br>
+                    • <strong>Semillero:</strong> Germinación<br>
+                    • <strong>Compostaje:</strong> Preparación abono<br>
+                    • <strong>Invernadero:</strong> Cultivo protegido<br><br>
+                    
+                    <strong>Después de crear:</strong><br>
+                    • Podrás instalar sensores<br>
+                    • Registrar plantas<br>
+                    • Monitorear condiciones<br>
+                    • Generar reportes
+                </small>
+            </div>
+        </div>
+
+        <div class="card mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-seedling"></i> Huertos Disponibles
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var huertos = ViewBag.Huertos as List<ConnectedRoot.Models.Huerto>;
+                }
+                @if (huertos != null && huertos.Count > 0)
+                {
+                    <small class="text-muted">
+                        Hay <strong>@huertos.Count huerto(s) activo(s)</strong> disponible(s) para crear zonas.
+                    </small>
+                }
+                else
+                {
+                    <div class="alert alert-warning alert-sm">
+                        <i class="fas fa-exclamation-triangle"></i>
+                        <small>No hay huertos activos disponibles. 
+                        <a asp-controller="Huerto" asp-action="Create">Crear un huerto</a> primero.</small>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        // Validación en tiempo real del nombre
+        document.getElementById('NombreZona').addEventListener('input', function() {
+            const nombre = this.value.trim();
+            
+            if (nombre.length >= 3) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                if (nombre.length > 0) {
+                    this.classList.add('is-invalid');
+                }
+            }
+        });
+
+        // Validación del huerto seleccionado
+        document.getElementById('HuertoId').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+
+        // Validación del tipo de zona
+        document.getElementById('TipoZona').addEventListener('change', function() {
+            if (this.value) {
+                this.classList.remove('is-invalid');
+                this.classList.add('is-valid');
+            } else {
+                this.classList.remove('is-valid');
+                this.classList.add('is-invalid');
+            }
+        });
+
+        // Validación de coordenadas
+        const latitudInput = document.getElementById('Coordenadas_Latitud');
+        const longitudInput = document.getElementById('Coordenadas_Longitud');
+
+        if (latitudInput) {
+            latitudInput.addEventListener('input', function() {
+                const valor = parseFloat(this.value);
+                if (valor >= -90 && valor <= 90) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else if (this.value) {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        }
+
+        if (longitudInput) {
+            longitudInput.addEventListener('input', function() {
+                const valor = parseFloat(this.value);
+                if (valor >= -180 && valor <= 180) {
+                    this.classList.remove('is-invalid');
+                    this.classList.add('is-valid');
+                } else if (this.value) {
+                    this.classList.remove('is-valid');
+                    this.classList.add('is-invalid');
+                }
+            });
+        }
+
+        // Reset form function
+        function resetForm() {
+            if (confirm('¿Estás seguro de limpiar todos los campos?')) {
+                document.querySelector('form').reset();
+                // Remove validation classes
+                document.querySelectorAll('.is-valid, .is-invalid').forEach(function(element) {
+                    element.classList.remove('is-valid', 'is-invalid');
+                });
+            }
+        }
+
+        // Auto-dismiss alerts
+        setTimeout(function() {
+            const alerts = document.querySelectorAll('.alert-dismissible');
+            alerts.forEach(function(alert) {
+                const bsAlert = new bootstrap.Alert(alert);
+                bsAlert.close();
+            });
+        }, 5000);
+
+        // Form change detection
+        let formChanged = false;
+        document.querySelector('form').addEventListener('input', function() {
+            formChanged = true;
+        });
+
+        // Warn before leaving if form has changes
+        window.addEventListener('beforeunload', function(e) {
+            if (formChanged) {
+                e.preventDefault();
+                e.returnValue = '¿Estás seguro de salir? Los cambios no guardados se perderán.';
+                return e.returnValue;
+            }
+        });
+
+        // Reset form changed flag on submit
+        document.querySelector('form').addEventListener('submit', function() {
+            formChanged = false;
+        });
+    </script>
+}

@@ -1,0 +1,520 @@
+@model ConnectedRoot.Models.Zona
+
+@{
+    ViewData["Title"] = "Detalles de la Zona";
+    var huerto = ViewBag.Huerto as ConnectedRoot.Models.Huerto;
+    var responsable = ViewBag.Responsable as ConnectedRoot.Models.Usuario;
+    var sensores = ViewBag.Sensores as List<ConnectedRoot.Models.Sensor> ?? new List<ConnectedRoot.Models.Sensor>();
+    var plantas = ViewBag.Plantas as List<ConnectedRoot.Models.Planta> ?? new List<ConnectedRoot.Models.Planta>();
+    var sensoresActivos = ViewBag.SensoresActivos ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-map-marked-alt"></i> Detalles de la Zona
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-map-marked-alt"></i> Zonas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalles</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información Principal -->
+        <div class="card shadow-sm">
+            <div class="card-header @(Model.Estado == "activa" ? "bg-info" : "bg-secondary") text-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            <i class="fas fa-map-pin"></i> @Model.NombreZona
+                        </h5>
+                        <small class="text-white-50">@Model.TipoZona</small>
+                    </div>
+                    <div>
+                        @if (Model.Estado == "activa")
+                        {
+                            <span class="badge bg-light text-success fs-6">
+                                <i class="fas fa-check-circle"></i> Activa
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-danger fs-6">
+                                <i class="fas fa-times-circle"></i> Inactiva
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-info-circle"></i> Información General
+                        </h6>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8">
+                                <code>@Model.Id</code>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('@Model.Id')" title="Copiar ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Nombre:</dt>
+                            <dd class="col-sm-8">@Model.NombreZona</dd>
+                            
+                            <dt class="col-sm-4">Tipo:</dt>
+                            <dd class="col-sm-8">
+                                @switch (Model.TipoZona.ToLower())
+                                {
+                                    case "hortalizas":
+                                        <span class="badge bg-success">🥬 Hortalizas</span>
+                                        break;
+                                    case "frutales":
+                                        <span class="badge bg-warning">🍎 Frutales</span>
+                                        break;
+                                    case "aromáticas":
+                                        <span class="badge bg-info">🌿 Aromáticas</span>
+                                        break;
+                                    case "semillero":
+                                        <span class="badge bg-primary">🌱 Semillero</span>
+                                        break;
+                                    case "compostaje":
+                                        <span class="badge bg-dark">♻️ Compostaje</span>
+                                        break;
+                                    case "invernadero":
+                                        <span class="badge bg-secondary">🏠 Invernadero</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-light text-dark">📦 @Model.TipoZona</span>
+                                        break;
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Descripción:</dt>
+                            <dd class="col-sm-8">
+                                @if (string.IsNullOrEmpty(Model.Descripcion))
+                                {
+                                    <span class="text-muted">Sin descripción</span>
+                                }
+                                else
+                                {
+                                    @Model.Descripcion
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Estado == "activa")
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Operativa
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-pause"></i> Inactiva
+                                    </span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-seedling"></i> Huerto Asignado
+                        </h6>
+                        
+                        @if (huerto != null)
+                        {
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success">
+                                        <i class="fas fa-leaf"></i>
+                                        @huerto.NombreHuerto
+                                    </h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <i class="fas fa-map-marker-alt"></i> @huerto.Ubicacion<br>
+                                            <i class="fas fa-circle text-@(huerto.Estado == "activo" ? "success" : "danger")"></i>
+                                            @(huerto.Estado == "activo" ? "Activo" : "Inactivo")
+                                        </small>
+                                    </p>
+                                    @if (responsable != null)
+                                    {
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <strong>Responsable:</strong><br>
+                                                <i class="fas fa-user"></i> @responsable.Nombre @responsable.PrimerApellido<br>
+                                                <i class="fas fa-envelope"></i> @responsable.Correo
+                                            </small>
+                                        </p>
+                                    }
+                                    <a asp-controller="Huerto" asp-action="Details" asp-route-id="@huerto.Id" 
+                                       class="btn btn-sm btn-outline-success">
+                                        <i class="fas fa-eye"></i> Ver huerto
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No se encontró información del huerto
+                            </div>
+                        }
+
+                        @if (Model.Coordenadas != null && Model.Coordenadas.Latitud != 0 && Model.Coordenadas.Longitud != 0)
+                        {
+                            <h6 class="text-muted mb-3 mt-4">
+                                <i class="fas fa-map-pin"></i> Ubicación GPS
+                            </h6>
+                            <div class="card border-primary">
+                                <div class="card-body">
+                                    <p class="card-text">
+                                        <strong>Latitud:</strong> @Model.Coordenadas.Latitud.ToString("F6")<br>
+                                        <strong>Longitud:</strong> @Model.Coordenadas.Longitud.ToString("F6")
+                                    </p>
+                                    <a href="https://www.google.com/maps/search/@Model.Coordenadas.Latitud,@Model.Coordenadas.Longitud" 
+                                       target="_blank" 
+                                       class="btn btn-sm btn-primary">
+                                        <i class="fas fa-map-marked-alt"></i> Ver en Google Maps
+                                    </a>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Sensores Instalados -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-microchip"></i> Sensores Instalados
+                    </h5>
+                    <span class="badge bg-info">@sensores.Count sensor(es)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!sensores.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-microchip text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay sensores instalados en esta zona.</p>
+                        <a asp-controller="Sensor" asp-action="Create" asp-route-zonaId="@Model.Id" class="btn btn-outline-info btn-sm">
+                            <i class="fas fa-plus"></i> Instalar primer sensor
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        @foreach (var sensor in sensores)
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-@(sensor.Estado == "activo" ? "success" : "danger")">
+                                    <div class="card-body text-center">
+                                        <i class="fas fa-@(sensor.Tipo.ToLower().Contains("temperatura") ? "thermometer-half" : 
+                                                          sensor.Tipo.ToLower().Contains("humedad") ? "tint" : 
+                                                          "microchip") text-@(sensor.Estado == "activo" ? "success" : "danger") fa-2x mb-2"></i>
+                                        <h6 class="card-title">@sensor.Tipo</h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                @sensor.Modelo<br>
+                                                <span class="badge bg-@(sensor.Estado == "activo" ? "success" : "danger")">
+                                                    @sensor.Estado
+                                                </span>
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Plantas Registradas -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-leaf"></i> Plantas Registradas
+                    </h5>
+                    <span class="badge bg-success">@plantas.Count planta(s)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!plantas.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-seedling text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay plantas registradas en esta zona.</p>
+                        <a href="#" class="btn btn-outline-success btn-sm">
+                            <i class="fas fa-plus"></i> Registrar primera planta
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="row">
+                        @foreach (var planta in plantas.Take(6))
+                        {
+                            <div class="col-md-4 mb-3">
+                                <div class="card border-success">
+                                    <div class="card-body">
+                                        <h6 class="card-title text-success">
+                                            <i class="fas fa-leaf"></i>
+                                            @planta.NombreComun
+                                        </h6>
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <strong>Científico:</strong> @planta.NombreCientifico<br>
+                                                <strong>Tipo:</strong> @planta.TipoCultivo<br>
+                                                <strong>Sembrada:</strong> @planta.FechaSiembra.ToString("dd/MM/yyyy")
+                                            </small>
+                                        </p>
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                    
+                    @if (plantas.Count > 6)
+                    {
+                        <div class="text-center">
+                            <a href="#" class="btn btn-outline-success">
+                                <i class="fas fa-eye"></i> Ver todas las plantas (@plantas.Count)
+                            </a>
+                        </div>
+                    }
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Acciones Rápidas -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Acciones Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Zona
+                    </a>
+                    
+                    <form asp-action="ToggleStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" 
+                                class="btn @(Model.Estado == "activa" ? "btn-outline-danger" : "btn-outline-success") w-100"
+                                onclick="return confirm('@(Model.Estado == "activa" ? "¿Desactivar esta zona?" : "¿Activar esta zona?")')">
+                            <i class="fas @(Model.Estado == "activa" ? "fa-pause" : "fa-play")"></i> 
+                            @(Model.Estado == "activa" ? "Desactivar" : "Activar")
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <a asp-controller="Sensor" asp-action="Create" asp-route-zonaId="@Model.Id" class="btn btn-info">
+                        <i class="fas fa-microchip"></i> Instalar Sensores
+                    </a>
+                    
+                    <a href="#" class="btn btn-success">
+                        <i class="fas fa-seedling"></i> Registrar Plantas
+                    </a>
+                    
+                    <a href="#" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> Ver Reportes
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas Rápidas -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Estadísticas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-info mb-0">@sensores.Count</h4>
+                        <small class="text-muted">Sensores</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-success mb-0">@plantas.Count</h4>
+                        <small class="text-muted">Plantas</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-warning mb-0">@sensoresActivos</h4>
+                        <small class="text-muted">Activos</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-danger mb-0">0</h4>
+                        <small class="text-muted">Alertas</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-info-circle"></i>
+                        Zona de tipo: <strong>@Model.TipoZona</strong>
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Rendimiento de la Zona -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-heartbeat"></i> Rendimiento de la Zona
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Sensores funcionando:</span>
+                        <span class="text-info">@sensoresActivos/@sensores.Count</span>
+                    </div>
+                    <div class="progress mt-1" style="height: 6px;">
+                        <div class="progress-bar bg-info" role="progressbar" 
+                             style="width: @(sensores.Count > 0 ? (sensoresActivos * 100 / sensores.Count) : 0)%"></div>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Plantas registradas:</span>
+                        <span class="text-success">@plantas.Count</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Última lectura:</span>
+                        <span class="text-muted">
+                            <small>@(sensores.Any() ? "Hace 10 min" : "Sin datos")</small>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar bg-success" role="progressbar" 
+                         style="width: @(Model.Estado == "activa" ? "92" : "0")%"></div>
+                </div>
+                <small class="text-muted">
+                    Salud de la zona: @(Model.Estado == "activa" ? "92%" : "0%")
+                </small>
+            </div>
+        </div>
+
+        <!-- Información del Tipo de Zona -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Información del Tipo
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    @switch (Model.TipoZona.ToLower())
+                    {
+                        case "hortalizas":
+                            <strong>🥬 Hortalizas:</strong><br>
+                            <span>Ideal para lechugas, tomates, zanahorias y vegetales de hoja verde. Requiere riego constante y monitoreo de pH del suelo.</span>
+                            break;
+                        case "frutales":
+                            <strong>🍎 Frutales:</strong><br>
+                            <span>Perfecta para árboles frutales como manzanos, naranjos o limoneros. Necesita monitoreo de humedad a largo plazo.</span>
+                            break;
+                        case "aromáticas":
+                            <strong>🌿 Aromáticas:</strong><br>
+                            <span>Excelente para hierbas como albahaca, romero, tomillo y menta. Requiere buen drenaje y exposición solar.</span>
+                            break;
+                        case "semillero":
+                            <strong>🌱 Semillero:</strong><br>
+                            <span>Área dedicada a la germinación de semillas. Necesita control estricto de temperatura y humedad.</span>
+                            break;
+                        case "compostaje":
+                            <strong>♻️ Compostaje:</strong><br>
+                            <span>Zona para descomposición de materia orgánica. Monitorea temperatura y humedad del compost.</span>
+                            break;
+                        case "invernadero":
+                            <strong>🏠 Invernadero:</strong><br>
+                            <span>Ambiente controlado para cultivos sensibles. Requiere monitoreo intensivo de todas las condiciones.</span>
+                            break;
+                        default:
+                            <strong>📦 @Model.TipoZona:</strong><br>
+                            <span>Zona de propósito especial. Configura sensores según las necesidades específicas del cultivo.</span>
+                            break;
+                    }
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Mostrar notificación de éxito
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check"></i> ID copiado al portapapeles
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                // Remover el toast después de que se oculte
+                toast.addEventListener('hidden.bs.toast', function() {
+                    document.body.removeChild(toast);
+                });
+            });
+        }
+    </script>
+}

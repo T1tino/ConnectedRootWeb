@@ -1,0 +1,650 @@
+@model ConnectedRoot.Models.Lectura
+@using ConnectedRoot.Models
+
+@{
+    ViewData["Title"] = "Detalles de la Lectura";
+    var sensor = ViewBag.Sensor as Sensor;
+    var zona = ViewBag.Zona as Zona;
+    var huerto = ViewBag.Huerto as Huerto;
+    var lecturasRelacionadas = ViewBag.LecturasRelacionadas as List<Lectura> ?? new List<Lectura>();
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-chart-line"></i> Detalles de la Lectura
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-chart-line"></i> Lecturas
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalles</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información Principal -->
+        <div class="card shadow-sm">
+            <div class="card-header @(Model.Tipo.ToLower().Contains("temperatura") ? "bg-danger" : 
+                                     Model.Tipo.ToLower().Contains("humedad") ? "bg-primary" : 
+                                     Model.Tipo.ToLower().Contains("ph") ? "bg-dark" : "bg-success") text-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            @switch (Model.Tipo.ToLower())
+                            {
+                                case var t when t.Contains("temperatura"):
+                                    <i class="fas fa-thermometer-half"></i>
+                                    break;
+                                case var t when t.Contains("humedad"):
+                                    <i class="fas fa-tint"></i>
+                                    break;
+                                case var t when t.Contains("luminosidad"):
+                                    <i class="fas fa-sun"></i>
+                                    break;
+                                case var t when t.Contains("ph"):
+                                    <i class="fas fa-flask"></i>
+                                    break;
+                                default:
+                                    <i class="fas fa-chart-bar"></i>
+                                    break;
+                            }
+                            @Model.Tipo
+                        </h5>
+                        <small class="text-white-50">Registrada el @Model.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                    </div>
+                    <div class="text-center">
+                        <h2 class="mb-0">@Model.Valor.ToString("F2")</h2>
+                        <small>@Model.Unidad</small>
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-info-circle"></i> Información de la Lectura
+                        </h6>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8">
+                                <code>@Model.Id</code>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('@Model.Id')" title="Copiar ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Tipo:</dt>
+                            <dd class="col-sm-8">
+                                <span class="badge @(Model.Tipo.ToLower().Contains("temperatura") ? "bg-danger" : 
+                                                   Model.Tipo.ToLower().Contains("humedad") ? "bg-primary" : 
+                                                   Model.Tipo.ToLower().Contains("ph") ? "bg-dark" : "bg-success")">
+                                    @Model.Tipo
+                                </span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Valor:</dt>
+                            <dd class="col-sm-8">
+                                <strong class="h4 @(Model.Tipo.ToLower().Contains("temperatura") ? "text-danger" : 
+                                                 Model.Tipo.ToLower().Contains("humedad") ? "text-primary" : "text-success")">
+                                    @Model.Valor.ToString("F2")
+                                </strong>
+                                <span class="text-muted ms-2">@Model.Unidad</span>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Fecha/Hora:</dt>
+                            <dd class="col-sm-8">
+                                @Model.FechaHora.ToString("dd/MM/yyyy HH:mm:ss")
+                                <br><small class="text-muted">
+                                    Hace @{
+                                        var tiempo = DateTime.Now - Model.FechaHora;
+                                        var textoTiempo = tiempo.TotalMinutes < 60 ? $"{(int)tiempo.TotalMinutes} minutos" :
+                                                        tiempo.TotalHours < 24 ? $"{(int)tiempo.TotalHours} horas" :
+                                                        $"{(int)tiempo.TotalDays} días";
+                                    }
+                                    @textoTiempo
+                                </small>
+                            </dd>
+
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                @{
+                                    var estado = "normal";
+                                    var colorEstado = "success";
+                                    var iconoEstado = "check";
+                                    
+                                    if (Model.Tipo.ToLower().Contains("temperatura"))
+                                    {
+                                        if (Model.Valor < 15 || Model.Valor > 35)
+                                        {
+                                            estado = "crítico";
+                                            colorEstado = "danger";
+                                            iconoEstado = "exclamation-triangle";
+                                        }
+                                        else if (Model.Valor < 20 || Model.Valor > 30)
+                                        {
+                                            estado = "advertencia";
+                                            colorEstado = "warning";
+                                            iconoEstado = "exclamation";
+                                        }
+                                    }
+                                    else if (Model.Tipo.ToLower().Contains("humedad"))
+                                    {
+                                        if (Model.Valor < 40 || Model.Valor > 90)
+                                        {
+                                            estado = "crítico";
+                                            colorEstado = "danger";
+                                            iconoEstado = "exclamation-triangle";
+                                        }
+                                        else if (Model.Valor < 60 || Model.Valor > 80)
+                                        {
+                                            estado = "advertencia";
+                                            colorEstado = "warning";
+                                            iconoEstado = "exclamation";
+                                        }
+                                    }
+                                }
+                                <span class="badge bg-@colorEstado">
+                                    <i class="fas fa-@iconoEstado"></i> @estado.ToUpper()
+                                </span>
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-microchip"></i> Sensor y Ubicación
+                        </h6>
+                        
+                        @if (sensor != null)
+                        {
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <h6 class="card-title text-info">
+                                        <i class="fas fa-microchip"></i>
+                                        @sensor.Tipo
+                                    </h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <strong>Modelo:</strong> @sensor.Modelo<br>
+                                            <strong>Estado:</strong> 
+                                            <span class="text-@(sensor.Estado == "activo" ? "success" : "danger")">
+                                                @sensor.Estado
+                                            </span><br>
+                                            <strong>Instalado:</strong> @sensor.FechaInstalacion.ToString("dd/MM/yyyy")
+                                        </small>
+                                    </p>
+                                    
+                                    @if (zona != null)
+                                    {
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <strong>Zona:</strong><br>
+                                                <i class="fas fa-map-pin"></i> @zona.NombreZona<br>
+                                                <i class="fas fa-tag"></i> @zona.TipoZona
+                                            </small>
+                                        </p>
+                                        
+                                        @if (huerto != null)
+                                        {
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <strong>Huerto:</strong><br>
+                                                    <i class="fas fa-leaf"></i> @huerto.NombreHuerto
+                                                </small>
+                                            </p>
+                                        }
+                                    }
+                                    
+                                    <div class="btn-group w-100" role="group">
+                                        <a asp-controller="Sensor" asp-action="Details" asp-route-id="@sensor.Id" 
+                                           class="btn btn-sm btn-outline-info">
+                                            <i class="fas fa-eye"></i> Ver sensor
+                                        </a>
+                                        @if (zona != null)
+                                        {
+                                            <a asp-controller="Zona" asp-action="Details" asp-route-id="@zona.Id" 
+                                               class="btn btn-sm btn-outline-success">
+                                                <i class="fas fa-map-marked-alt"></i> Ver zona
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No se encontró información del sensor
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Lecturas Relacionadas -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-history"></i> Lecturas Relacionadas
+                    </h5>
+                    <span class="badge bg-info">@lecturasRelacionadas.Count lectura(s)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!lecturasRelacionadas.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay otras lecturas de este sensor.</p>
+                    </div>
+                }
+                else
+                {
+                    <div class="text-center py-3">
+                        <i class="fas fa-chart-area text-muted fa-2x mb-2"></i>
+                        <p class="text-muted mb-0">Necesitas más lecturas para mostrar tendencias.</p>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Acciones Rápidas -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Acciones Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Lectura
+                    </a>
+                    
+                    <form asp-action="Delete" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" 
+                                class="btn btn-outline-danger w-100"
+                                onclick="return confirm('¿Eliminar esta lectura?')">
+                            <i class="fas fa-trash"></i> Eliminar Lectura
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    @if (sensor != null)
+                    {
+                        <a asp-action="Create" asp-route-sensorId="@sensor.Id" class="btn btn-primary">
+                            <i class="fas fa-plus"></i> Nueva Lectura (Mismo Sensor)
+                        </a>
+                        
+                        <a asp-action="Index" asp-route-filtroSensor="@sensor.Id" class="btn btn-info">
+                            <i class="fas fa-chart-line"></i> Historial del Sensor
+                        </a>
+                    }
+                    
+                    <a asp-controller="Alerta" asp-action="Create" asp-route-zonaId="@zona?.Id" class="btn btn-outline-warning">
+                        <i class="fas fa-bell"></i> Crear Alerta
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Evaluación del Valor -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-clipboard-check"></i> Evaluación del Valor
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var evaluacion = "";
+                    var recomendacion = "";
+                    var colorEval = "info";
+                    
+                    if (Model.Tipo.ToLower().Contains("temperatura"))
+                    {
+                        if (Model.Valor >= 20 && Model.Valor <= 25)
+                        {
+                            evaluacion = "Óptimo";
+                            recomendacion = "Temperatura ideal para la mayoría de cultivos.";
+                            colorEval = "success";
+                        }
+                        else if (Model.Valor >= 15 && Model.Valor <= 35)
+                        {
+                            evaluacion = "Aceptable";
+                            recomendacion = "Temperatura dentro del rango tolerable.";
+                            colorEval = "warning";
+                        }
+                        else
+                        {
+                            evaluacion = "Crítico";
+                            recomendacion = Model.Valor < 15 ? "Temperatura muy baja. Considerar protección." : "Temperatura muy alta. Aumentar ventilación o sombra.";
+                            colorEval = "danger";
+                        }
+                    }
+                    else if (Model.Tipo.ToLower().Contains("humedad"))
+                    {
+                        if (Model.Valor >= 60 && Model.Valor <= 80)
+                        {
+                            evaluacion = "Óptimo";
+                            recomendacion = "Nivel de humedad ideal.";
+                            colorEval = "success";
+                        }
+                        else if (Model.Valor >= 40 && Model.Valor <= 90)
+                        {
+                            evaluacion = "Aceptable";
+                            recomendacion = Model.Valor < 60 ? "Considerar riego moderado." : "Monitorear drenaje.";
+                            colorEval = "warning";
+                        }
+                        else
+                        {
+                            evaluacion = "Crítico";
+                            recomendacion = Model.Valor < 40 ? "Riego urgente necesario." : "Exceso de agua, mejorar drenaje.";
+                            colorEval = "danger";
+                        }
+                    }
+                    else if (Model.Tipo.ToLower().Contains("ph"))
+                    {
+                        if (Model.Valor >= 6.0 && Model.Valor <= 7.0)
+                        {
+                            evaluacion = "Óptimo";
+                            recomendacion = "pH neutro, ideal para la mayoría de plantas.";
+                            colorEval = "success";
+                        }
+                        else if (Model.Valor >= 5.5 && Model.Valor <= 8.0)
+                        {
+                            evaluacion = "Aceptable";
+                            recomendacion = Model.Valor < 6.0 ? "Suelo ligeramente ácido." : "Suelo ligeramente alcalino.";
+                            colorEval = "warning";
+                        }
+                        else
+                        {
+                            evaluacion = "Crítico";
+                            recomendacion = Model.Valor < 5.5 ? "Suelo muy ácido, agregar cal." : "Suelo muy alcalino, agregar materia orgánica.";
+                            colorEval = "danger";
+                        }
+                    }
+                    else
+                    {
+                        evaluacion = "Normal";
+                        recomendacion = "Valor registrado correctamente.";
+                        colorEval = "info";
+                    }
+                }
+                
+                <div class="alert alert-@colorEval">
+                    <h6 class="alert-heading">
+                        <i class="fas fa-@(colorEval == "success" ? "check-circle" : colorEval == "warning" ? "exclamation" : "exclamation-triangle")"></i>
+                        @evaluacion
+                    </h6>
+                    <p class="mb-0">@recomendacion</p>
+                </div>
+                
+                @if (Model.Tipo.ToLower().Contains("temperatura"))
+                {
+                    <small class="text-muted">
+                        <strong>Rangos de referencia:</strong><br>
+                        🟢 Óptimo: 20-25°C<br>
+                        🟡 Aceptable: 15-35°C<br>
+                        🔴 Crítico: &lt;15°C o &gt;35°C
+                    </small>
+                }
+                else if (Model.Tipo.ToLower().Contains("humedad"))
+                {
+                    <small class="text-muted">
+                        <strong>Rangos de referencia:</strong><br>
+                        🟢 Óptimo: 60-80%<br>
+                        🟡 Aceptable: 40-90%<br>
+                        🔴 Crítico: &lt;40% o &gt;90%
+                    </small>
+                }
+            </div>
+        </div>
+
+        <!-- Información del Contexto -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Contexto de la Medición
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>📅 Fecha:</strong> @Model.FechaHora.ToString("dddd, dd 'de' MMMM 'de' yyyy", new System.Globalization.CultureInfo("es-ES"))<br>
+                    <strong>🕒 Hora:</strong> @Model.FechaHora.ToString("HH:mm:ss")<br>
+                    <strong>🌍 Estación:</strong> 
+                    @{
+                        var mes = Model.FechaHora.Month;
+                        var estacion = mes >= 3 && mes <= 5 ? "Primavera" :
+                                      mes >= 6 && mes <= 8 ? "Verano" :
+                                      mes >= 9 && mes <= 11 ? "Otoño" : "Invierno";
+                    }
+                    @estacion<br><br>
+                    
+                    @if (lecturasRelacionadas.Any())
+                    {
+                        var frecuencia = lecturasRelacionadas.Count > 1 ? 
+                            (lecturasRelacionadas.Max(l => l.FechaHora) - lecturasRelacionadas.Min(l => l.FechaHora)).TotalHours / lecturasRelacionadas.Count :
+                            0;
+                        
+                        <strong>📊 Frecuencia promedio:</strong><br>
+                        @if (frecuencia > 0)
+                        {
+                            <span>Cada @frecuencia.ToString("F1") horas</span>
+                        }
+                        else
+                        {
+                            <span>Datos insuficientes</span>
+                        }
+                    }
+                </small>
+            </div>
+        </div>
+
+        <!-- Alertas Relacionadas -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-exclamation-triangle"></i> Alertas y Recomendaciones
+                </h6>
+            </div>
+            <div class="card-body">
+                @{
+                    var hayAlerta = false;
+                    if (Model.Tipo.ToLower().Contains("temperatura") && (Model.Valor < 15 || Model.Valor > 35))
+                    {
+                        hayAlerta = true;
+                    }
+                    else if (Model.Tipo.ToLower().Contains("humedad") && (Model.Valor < 40 || Model.Valor > 90))
+                    {
+                        hayAlerta = true;
+                    }
+                }
+                
+                @if (hayAlerta)
+                {
+                    <div class="alert alert-warning alert-sm">
+                        <i class="fas fa-bell"></i>
+                        <small>Esta lectura podría generar una alerta automática.</small>
+                    </div>
+                }
+                else
+                {
+                    <div class="alert alert-success alert-sm">
+                        <i class="fas fa-check"></i>
+                        <small>Lectura dentro de parámetros normales.</small>
+                    </div>
+                }
+                
+                <small class="text-muted">
+                    <strong>💡 Recomendaciones:</strong><br>
+                    • Registra lecturas regularmente<br>
+                    • Compara con lecturas anteriores<br>
+                    • Considera factores ambientales<br>
+                    • Documenta cualquier anomalía
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Mostrar notificación de éxito
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check"></i> ID copiado al portapapeles
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                // Remover el toast después de que se oculte
+                toast.addEventListener('hidden.bs.toast', function() {
+                    document.body.removeChild(toast);
+                });
+            });
+        }
+    </script>
+}
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Variación</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var lectura in lecturasRelacionadas)
+                                {
+                                    @{
+                                        var diferencia = Model.Valor - lectura.Valor;
+                                        var porcentaje = lectura.Valor != 0 ? (diferencia / lectura.Valor) * 100 : 0;
+                                    }
+                                    <tr>
+                                        <td>
+                                            <small>@lectura.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </td>
+                                        <td>@lectura.Tipo</td>
+                                        <td>
+                                            <strong>@lectura.Valor.ToString("F2")</strong> @lectura.Unidad
+                                        </td>
+                                        <td>
+                                            @if (Math.Abs(diferencia) > 0.01)
+                                            {
+                                                <small class="@(diferencia > 0 ? "text-success" : "text-danger")">
+                                                    <i class="fas fa-@(diferencia > 0 ? "arrow-up" : "arrow-down")"></i>
+                                                    @Math.Abs(diferencia).ToString("F2") (@Math.Abs(porcentaje).ToString("F1")%)
+                                                </small>
+                                            }
+                                            else
+                                            {
+                                                <small class="text-muted">Sin cambio</small>
+                                            }
+                                        </td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a asp-action="Index" asp-route-filtroSensor="@Model.SensorId" class="btn btn-outline-info">
+                            <i class="fas fa-eye"></i> Ver todas las lecturas de este sensor
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+
+        <!-- Análisis de Tendencias -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <h5 class="card-title mb-0">
+                    <i class="fas fa-chart-area"></i> Análisis de Tendencias
+                </h5>
+            </div>
+            <div class="card-body">
+                @if (lecturasRelacionadas.Any())
+                {
+                    @{
+                        var lecturaAnterior = lecturasRelacionadas.FirstOrDefault();
+                        var promedio = lecturasRelacionadas.Average(l => l.Valor);
+                        var maximo = lecturasRelacionadas.Max(l => l.Valor);
+                        var minimo = lecturasRelacionadas.Min(l => l.Valor);
+                    }
+                    
+                    <div class="row text-center">
+                        <div class="col-md-3">
+                            <h5 class="text-primary">@promedio.ToString("F2")</h5>
+                            <small class="text-muted">Promedio</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-danger">@maximo.ToString("F2")</h5>
+                            <small class="text-muted">Máximo</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-info">@minimo.ToString("F2")</h5>
+                            <small class="text-muted">Mínimo</small>
+                        </div>
+                        <div class="col-md-3">
+                            <h5 class="text-warning">@((maximo - minimo).ToString("F2"))</h5>
+                            <small class="text-muted">Rango</small>
+                        </div>
+                    </div>
+                    
+                    @if (lecturaAnterior != null)
+                    {
+                        @{
+                            var cambio = Model.Valor - lecturaAnterior.Valor;
+                            var tendencia = Math.Abs(cambio) < 0.1 ? "estable" : cambio > 0 ? "ascendente" : "descendente";
+                        }
+                        
+                        <hr>
+                        <div class="alert alert-@(tendencia == "estable" ? "info" : cambio > 0 ? "warning" : "primary")">
+                            <strong>Tendencia @tendencia:</strong>
+                            @if (tendencia != "estable")
+                            {
+                                <span>Cambio de @cambio.ToString("F2") @Model.Unidad respecto a la lectura anterior.</span>
+                            }
+                            else
+                            {
+                                <span>Los valores se mantienen estables.</span>
+                            }
+                        </div>
+                    }
+                }
+                else

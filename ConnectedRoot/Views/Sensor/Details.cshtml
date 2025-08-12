@@ -1,0 +1,549 @@
+@model ConnectedRoot.Models.Sensor
+@using ConnectedRoot.Models
+
+@{
+    ViewData["Title"] = "Detalles del Sensor";
+    var zona = ViewBag.Zona as Zona;
+    var huerto = ViewBag.Huerto as Huerto;
+    var responsable = ViewBag.Responsable as Usuario;
+    var ultimasLecturas = ViewBag.UltimasLecturas as List<Lectura> ?? new List<Lectura>();
+    var totalLecturas = ViewBag.TotalLecturas as int? ?? 0;
+    var alertasPendientes = ViewBag.AlertasPendientes as int? ?? 0;
+}
+
+<div class="d-flex justify-content-between align-items-center mb-4">
+    <h2>
+        <i class="fas fa-microchip"></i> Detalles del Sensor
+    </h2>
+    <nav aria-label="breadcrumb">
+        <ol class="breadcrumb">
+            <li class="breadcrumb-item">
+                <a asp-action="Index">
+                    <i class="fas fa-microchip"></i> Sensores
+                </a>
+            </li>
+            <li class="breadcrumb-item active">Detalles</li>
+        </ol>
+    </nav>
+</div>
+
+<div class="row">
+    <div class="col-md-8">
+        <!-- Información Principal -->
+        <div class="card shadow-sm">
+            <div class="card-header @(Model.Estado == "activo" ? "bg-success" : Model.Estado == "mantenimiento" ? "bg-warning" : "bg-secondary") text-white">
+                <div class="d-flex align-items-center justify-content-between">
+                    <div>
+                        <h5 class="card-title mb-0">
+                            @if (Model.Tipo.ToLower().Contains("temperatura"))
+                            {
+                                <i class="fas fa-thermometer-half"></i>
+                            }
+                            else if (Model.Tipo.ToLower().Contains("humedad"))
+                            {
+                                <i class="fas fa-tint"></i>
+                            }
+                            else if (Model.Tipo.ToLower().Contains("luminosidad"))
+                            {
+                                <i class="fas fa-sun"></i>
+                            }
+                            else if (Model.Tipo.ToLower().Contains("ph"))
+                            {
+                                <i class="fas fa-flask"></i>
+                            }
+                            else
+                            {
+                                <i class="fas fa-microchip"></i>
+                            }
+                            @Model.Tipo
+                        </h5>
+                        <small class="text-white-50">Modelo: @Model.Modelo</small>
+                    </div>
+                    <div>
+                        @if (Model.Estado == "activo")
+                        {
+                            <span class="badge bg-light text-success fs-6">
+                                <i class="fas fa-check-circle"></i> Operativo
+                            </span>
+                        }
+                        else if (Model.Estado == "mantenimiento")
+                        {
+                            <span class="badge bg-light text-warning fs-6">
+                                <i class="fas fa-wrench"></i> Mantenimiento
+                            </span>
+                        }
+                        else
+                        {
+                            <span class="badge bg-light text-danger fs-6">
+                                <i class="fas fa-times-circle"></i> Inactivo
+                            </span>
+                        }
+                    </div>
+                </div>
+            </div>
+            <div class="card-body">
+                <div class="row">
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-info-circle"></i> Información del Sensor
+                        </h6>
+                        
+                        <dl class="row">
+                            <dt class="col-sm-4">ID:</dt>
+                            <dd class="col-sm-8">
+                                <code>@Model.Id</code>
+                                <button class="btn btn-sm btn-outline-secondary ms-2" onclick="copyToClipboard('@Model.Id')" title="Copiar ID">
+                                    <i class="fas fa-copy"></i>
+                                </button>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Tipo:</dt>
+                            <dd class="col-sm-8">
+                                @switch (Model.Tipo.ToLower())
+                                {
+                                    case "temperatura":
+                                        <span class="badge bg-danger">🌡️ Temperatura</span>
+                                        break;
+                                    case "humedad del suelo":
+                                        <span class="badge bg-primary">💧 Humedad del Suelo</span>
+                                        break;
+                                    case "humedad ambiental":
+                                        <span class="badge bg-info">🌫️ Humedad Ambiental</span>
+                                        break;
+                                    case "luminosidad":
+                                        <span class="badge bg-warning">☀️ Luminosidad</span>
+                                        break;
+                                    case "ph del suelo":
+                                        <span class="badge bg-dark">⚗️ pH del Suelo</span>
+                                        break;
+                                    case "temperatura y humedad":
+                                        <span class="badge bg-success">🌡️💧 Temperatura y Humedad</span>
+                                        break;
+                                    default:
+                                        <span class="badge bg-secondary">📡 @Model.Tipo</span>
+                                        break;
+                                }
+                            </dd>
+                            
+                            <dt class="col-sm-4">Modelo:</dt>
+                            <dd class="col-sm-8">@Model.Modelo</dd>
+                            
+                            <dt class="col-sm-4">Instalación:</dt>
+                            <dd class="col-sm-8">
+                                @Model.FechaInstalacion.ToString("dd/MM/yyyy")
+                                <br><small class="text-muted">
+                                    Hace @{
+                                        var dias = (DateTime.Now - Model.FechaInstalacion).Days;
+                                        var texto = dias == 0 ? "hoy" : 
+                                                   dias == 1 ? "1 día" : 
+                                                   dias < 30 ? $"{dias} días" :
+                                                   dias < 365 ? $"{dias/30} meses" : $"{dias/365} años";
+                                    }
+                                    @texto
+                                </small>
+                            </dd>
+                            
+                            <dt class="col-sm-4">Estado:</dt>
+                            <dd class="col-sm-8">
+                                @if (Model.Estado == "activo")
+                                {
+                                    <span class="badge bg-success">
+                                        <i class="fas fa-check"></i> Operativo
+                                    </span>
+                                }
+                                else if (Model.Estado == "mantenimiento")
+                                {
+                                    <span class="badge bg-warning">
+                                        <i class="fas fa-wrench"></i> Mantenimiento
+                                    </span>
+                                }
+                                else
+                                {
+                                    <span class="badge bg-danger">
+                                        <i class="fas fa-pause"></i> Inactivo
+                                    </span>
+                                }
+                            </dd>
+                        </dl>
+                    </div>
+                    
+                    <div class="col-md-6">
+                        <h6 class="text-muted mb-3">
+                            <i class="fas fa-map-marked-alt"></i> Ubicación
+                        </h6>
+                        
+                        @if (zona != null)
+                        {
+                            <div class="card border-success">
+                                <div class="card-body">
+                                    <h6 class="card-title text-success">
+                                        <i class="fas fa-map-pin"></i>
+                                        @zona.NombreZona
+                                    </h6>
+                                    <p class="card-text">
+                                        <small class="text-muted">
+                                            <strong>Tipo:</strong> @zona.TipoZona<br>
+                                            <strong>Estado:</strong> 
+                                            <span class="text-@(zona.Estado == "activa" ? "success" : "danger")">
+                                                @zona.Estado
+                                            </span>
+                                        </small>
+                                    </p>
+                                    
+                                    @if (huerto != null)
+                                    {
+                                        <p class="card-text">
+                                            <small class="text-muted">
+                                                <strong>Huerto:</strong><br>
+                                                <i class="fas fa-leaf"></i> @huerto.NombreHuerto<br>
+                                                <i class="fas fa-map-marker-alt"></i> @huerto.Ubicacion
+                                            </small>
+                                        </p>
+                                        
+                                        @if (responsable != null)
+                                        {
+                                            <p class="card-text">
+                                                <small class="text-muted">
+                                                    <strong>Responsable:</strong><br>
+                                                    <i class="fas fa-user"></i> @responsable.Nombre @responsable.PrimerApellido<br>
+                                                    <i class="fas fa-envelope"></i> @responsable.Correo
+                                                </small>
+                                            </p>
+                                        }
+                                    }
+                                    
+                                    <div class="btn-group w-100" role="group">
+                                        <a asp-controller="Zona" asp-action="Details" asp-route-id="@zona.Id" 
+                                           class="btn btn-sm btn-outline-success">
+                                            <i class="fas fa-eye"></i> Ver zona
+                                        </a>
+                                        @if (huerto != null)
+                                        {
+                                            <a asp-controller="Huerto" asp-action="Details" asp-route-id="@huerto.Id" 
+                                               class="btn btn-sm btn-outline-info">
+                                                <i class="fas fa-seedling"></i> Ver huerto
+                                            </a>
+                                        }
+                                    </div>
+                                </div>
+                            </div>
+                        }
+                        else
+                        {
+                            <div class="alert alert-warning">
+                                <i class="fas fa-exclamation-triangle"></i>
+                                No se encontró información de la zona
+                            </div>
+                        }
+
+                        @if (!string.IsNullOrEmpty(Model.Descripcion))
+                        {
+                            <h6 class="text-muted mb-3 mt-4">
+                                <i class="fas fa-sticky-note"></i> Notas de Instalación
+                            </h6>
+                            <div class="card border-info">
+                                <div class="card-body">
+                                    <p class="card-text">@Model.Descripcion</p>
+                                </div>
+                            </div>
+                        }
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Últimas Lecturas -->
+        <div class="card shadow-sm mt-4">
+            <div class="card-header">
+                <div class="d-flex justify-content-between align-items-center">
+                    <h5 class="card-title mb-0">
+                        <i class="fas fa-chart-line"></i> Últimas Lecturas
+                    </h5>
+                    <span class="badge bg-info">@ultimasLecturas.Count lectura(s)</span>
+                </div>
+            </div>
+            <div class="card-body">
+                @if (!ultimasLecturas.Any())
+                {
+                    <div class="text-center py-4">
+                        <i class="fas fa-chart-line text-muted fa-3x mb-3"></i>
+                        <p class="text-muted mb-2">No hay lecturas registradas para este sensor.</p>
+                        <a asp-controller="Lectura" asp-action="Create" asp-route-sensorId="@Model.Id" class="btn btn-outline-primary btn-sm">
+                            <i class="fas fa-plus"></i> Agregar primera lectura
+                        </a>
+                    </div>
+                }
+                else
+                {
+                    <div class="table-responsive">
+                        <table class="table table-sm">
+                            <thead>
+                                <tr>
+                                    <th>Fecha/Hora</th>
+                                    <th>Tipo</th>
+                                    <th>Valor</th>
+                                    <th>Unidad</th>
+                                </tr>
+                            </thead>
+                            <tbody>
+                                @foreach (var lectura in ultimasLecturas)
+                                {
+                                    <tr>
+                                        <td>
+                                            <small>@lectura.FechaHora.ToString("dd/MM/yyyy HH:mm")</small>
+                                        </td>
+                                        <td>@lectura.Tipo</td>
+                                        <td>
+                                            <strong class="text-primary">@lectura.Valor.ToString("F2")</strong>
+                                        </td>
+                                        <td>@lectura.Unidad</td>
+                                    </tr>
+                                }
+                            </tbody>
+                        </table>
+                    </div>
+                    
+                    <div class="text-center mt-3">
+                        <a asp-controller="Lectura" asp-action="Index" asp-route-sensorId="@Model.Id" class="btn btn-outline-info">
+                            <i class="fas fa-eye"></i> Ver todas las lecturas
+                        </a>
+                    </div>
+                }
+            </div>
+        </div>
+    </div>
+
+    <!-- Panel Lateral -->
+    <div class="col-md-4">
+        <!-- Acciones Rápidas -->
+        <div class="card shadow-sm">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-bolt"></i> Acciones Rápidas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="d-grid gap-2">
+                    <a asp-action="Edit" asp-route-id="@Model.Id" class="btn btn-warning">
+                        <i class="fas fa-edit"></i> Editar Sensor
+                    </a>
+                    
+                    <form asp-action="ToggleStatus" asp-route-id="@Model.Id" method="post">
+                        @Html.AntiForgeryToken()
+                        <button type="submit" 
+                                class="btn @(Model.Estado == "activo" ? "btn-outline-danger" : "btn-outline-success") w-100"
+                                onclick="return confirm('@(Model.Estado == "activo" ? "¿Desactivar este sensor?" : "¿Activar este sensor?")')">
+                            <i class="fas @(Model.Estado == "activo" ? "fa-pause" : "fa-play")"></i> 
+                            @(Model.Estado == "activo" ? "Desactivar" : "Activar")
+                        </button>
+                    </form>
+                    
+                    <hr>
+                    
+                    <a asp-controller="Lectura" asp-action="Create" asp-route-sensorId="@Model.Id" class="btn btn-primary">
+                        <i class="fas fa-plus"></i> Agregar Lectura
+                    </a>
+                    
+                    <a asp-controller="Alerta" asp-action="Create" asp-route-sensorId="@Model.Id" class="btn btn-info">
+                        <i class="fas fa-bell"></i> Configurar Alertas
+                    </a>
+                    
+                    <a asp-controller="Lectura" asp-action="Index" asp-route-sensorId="@Model.Id" class="btn btn-outline-primary">
+                        <i class="fas fa-chart-line"></i> Ver Historial
+                    </a>
+                    
+                    <hr>
+                    
+                    <a asp-action="Index" class="btn btn-secondary">
+                        <i class="fas fa-arrow-left"></i> Volver a la Lista
+                    </a>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estadísticas -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-chart-pie"></i> Estadísticas
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="row text-center">
+                    <div class="col-6 border-end">
+                        <h4 class="text-primary mb-0">@totalLecturas</h4>
+                        <small class="text-muted">Lecturas</small>
+                    </div>
+                    <div class="col-6">
+                        <h4 class="text-warning mb-0">@alertasPendientes</h4>
+                        <small class="text-muted">Alertas</small>
+                    </div>
+                </div>
+                
+                <hr>
+                
+                <div class="text-center">
+                    <small class="text-muted">
+                        <i class="fas fa-clock"></i>
+                        Instalado hace @{
+                            var diasInstalado = (DateTime.Now - Model.FechaInstalacion).Days;
+                            var textoInstalado = diasInstalado == 0 ? "hoy" : 
+                                               diasInstalado == 1 ? "1 día" : 
+                                               diasInstalado < 30 ? $"{diasInstalado} días" :
+                                               diasInstalado < 365 ? $"{diasInstalado/30} meses" : $"{diasInstalado/365} años";
+                        }
+                        @textoInstalado
+                    </small>
+                </div>
+            </div>
+        </div>
+
+        <!-- Estado del Sensor -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-heartbeat"></i> Estado del Sensor
+                </h6>
+            </div>
+            <div class="card-body">
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Estado operativo:</span>
+                        <span class="badge @(Model.Estado == "activo" ? "bg-success" : Model.Estado == "mantenimiento" ? "bg-warning" : "bg-danger")">
+                            @(Model.Estado == "activo" ? "Operativo" : Model.Estado == "mantenimiento" ? "Mantenimiento" : "Inactivo")
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Lecturas hoy:</span>
+                        <span class="text-info">0</span>
+                    </div>
+                </div>
+                
+                <div class="mb-3">
+                    <div class="d-flex justify-content-between align-items-center">
+                        <span>Última lectura:</span>
+                        <span class="text-muted">
+                            <small>@(ultimasLecturas.Any() ? ultimasLecturas.First().FechaHora.ToString("HH:mm") : "Sin datos")</small>
+                        </span>
+                    </div>
+                </div>
+                
+                <div class="progress mb-2" style="height: 8px;">
+                    <div class="progress-bar @(Model.Estado == "activo" ? "bg-success" : "bg-secondary")" role="progressbar" 
+                         style="width: @(Model.Estado == "activo" ? "92" : "0")%"></div>
+                </div>
+                <small class="text-muted">
+                    Salud del sensor: @(Model.Estado == "activo" ? "92%" : "0%")
+                </small>
+            </div>
+        </div>
+
+        <!-- Información del Tipo de Sensor -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-info-circle"></i> Información del Tipo
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    @switch (Model.Tipo.ToLower())
+                    {
+                        case "temperatura":
+                            <strong>🌡️ Sensor de Temperatura:</strong><br>
+                            <span>Mide la temperatura ambiente en grados Celsius. Ideal para monitoreo climático y control de invernaderos. Rango típico: -40°C a +80°C.</span>
+                            break;
+                        case "humedad del suelo":
+                            <strong>💧 Sensor de Humedad del Suelo:</strong><br>
+                            <span>Detecta el contenido de agua en el sustrato. Esencial para optimizar el riego y prevenir el estrés hídrico. Valores en porcentaje de humedad.</span>
+                            break;
+                        case "humedad ambiental":
+                            <strong>🌫️ Sensor de Humedad Ambiental:</strong><br>
+                            <span>Mide la humedad relativa del aire. Importante para prevenir enfermedades fúngicas y optimizar condiciones de crecimiento. Rango: 0-100% HR.</span>
+                            break;
+                        case "luminosidad":
+                            <strong>☀️ Sensor de Luminosidad:</strong><br>
+                            <span>Detecta la intensidad lumínica en lux. Fundamental para fotoperíodo y fotosíntesis. Ayuda a optimizar ubicación de cultivos.</span>
+                            break;
+                        case "ph del suelo":
+                            <strong>⚗️ Sensor de pH del Suelo:</strong><br>
+                            <span>Mide acidez/alcalinidad del sustrato. Crítico para absorción de nutrientes. Rango óptimo: 6.0-7.5 para la mayoría de cultivos.</span>
+                            break;
+                        case "temperatura y humedad":
+                            <strong>🌡️💧 Sensor Combinado:</strong><br>
+                            <span>Mide temperatura y humedad simultáneamente. Solución económica para monitoreo climático básico. Ideal para control ambiental general.</span>
+                            break;
+                        default:
+                            <strong>📡 @Model.Tipo:</strong><br>
+                            <span>Sensor especializado para monitoreo específico. Consulta la documentación técnica para rangos de medición y aplicaciones recomendadas.</span>
+                            break;
+                    }
+                </small>
+            </div>
+        </div>
+
+        <!-- Mantenimiento -->
+        <div class="card shadow-sm mt-3">
+            <div class="card-header">
+                <h6 class="card-title mb-0">
+                    <i class="fas fa-wrench"></i> Mantenimiento
+                </h6>
+            </div>
+            <div class="card-body">
+                <small class="text-muted">
+                    <strong>🔧 Próximas tareas:</strong><br>
+                    • Limpieza de sensores: Cada 30 días<br>
+                    • Calibración: Cada 6 meses<br>
+                    • Revisión de conectividad: Semanal<br>
+                    • Cambio de batería: Anual<br><br>
+                    
+                    <strong>📅 Última mantención:</strong><br>
+                    <span class="text-warning">Pendiente registro</span><br><br>
+                    
+                    <strong>⚠️ Recordatorios:</strong><br>
+                    • Verificar lecturas anómalas<br>
+                    • Proteger de condiciones extremas<br>
+                    • Documentar intervenciones
+                </small>
+            </div>
+        </div>
+    </div>
+</div>
+
+@section Scripts {
+    <script>
+        function copyToClipboard(text) {
+            navigator.clipboard.writeText(text).then(function() {
+                // Mostrar notificación de éxito
+                const toast = document.createElement('div');
+                toast.className = 'toast align-items-center text-white bg-success border-0 position-fixed';
+                toast.style.cssText = 'top: 20px; right: 20px; z-index: 9999;';
+                toast.innerHTML = `
+                    <div class="d-flex">
+                        <div class="toast-body">
+                            <i class="fas fa-check"></i> ID copiado al portapapeles
+                        </div>
+                        <button type="button" class="btn-close btn-close-white me-2 m-auto" data-bs-dismiss="toast"></button>
+                    </div>
+                `;
+                document.body.appendChild(toast);
+                const bsToast = new bootstrap.Toast(toast);
+                bsToast.show();
+                
+                // Remover el toast después de que se oculte
+                toast.addEventListener('hidden.bs.toast', function() {
+                    document.body.removeChild(toast);
+                });
+            });
+        }
+
+        // Actualizar estadísticas cada 30 segundos (simulación)
+        setInterval(function() {
+            // Aquí podrías hacer una llamada AJAX para actualizar datos en tiempo real
+            console.log('Actualizando estadísticas del sensor...');
+        }, 30000);
+    </script>
+}

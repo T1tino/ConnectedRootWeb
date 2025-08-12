@@ -1,0 +1,307 @@
+﻿<!DOCTYPE html>
+<html lang="es">
+
+<head>
+    <meta charset="utf-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>@ViewData["Title"] - Connected Root</title>
+
+    <!-- Bootstrap -->
+    <link href="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/css/bootstrap.min.css" rel="stylesheet">
+    <link rel="stylesheet" href="https://cdn.jsdelivr.net/npm/bootstrap-icons@1.13.1/font/bootstrap-icons.css">
+
+    <!-- Font Awesome para iconos -->
+    <link rel="stylesheet" href="https://cdnjs.cloudflare.com/ajax/libs/font-awesome/6.0.0/css/all.min.css">
+
+    <!-- Tu CSS personalizado -->
+    <link rel="stylesheet" href="~/Views/Shared/_Layout.cshtml.css" asp-append-version="true" />
+    @RenderSection("Styles", required: false)
+
+    <!-- Favicon -->
+    <link rel="icon" type="image/svg+xml" href="~/images/Maceta.svg" sizes="30x30">
+
+    <style>
+        .user-info {
+            background: rgba(255, 255, 255, 0.1);
+            border-radius: 10px;
+            padding: 8px 15px;
+            backdrop-filter: blur(10px);
+        }
+        
+        .sidebar-link {
+            transition: all 0.3s ease;
+            text-decoration: none;
+        }
+        
+        .sidebar-link:hover {
+            background: rgba(255, 255, 255, 0.1) !important;
+            transform: translateY(-1px);
+            text-decoration: none;
+            color: white !important;
+        }
+        
+        .dropdown-menu {
+            border: none;
+            box-shadow: 0 4px 20px rgba(0,0,0,0.1);
+            border-radius: 10px;
+        }
+        
+        .dropdown-item {
+            padding: 10px 20px;
+            transition: all 0.3s ease;
+        }
+        
+        .dropdown-item:hover {
+            background-color: #f8f9fa;
+            transform: translateX(5px);
+        }
+        
+        .btn-logout {
+            background: rgba(255, 255, 255, 0.1);
+            border: 1px solid rgba(255, 255, 255, 0.2);
+            transition: all 0.3s ease;
+        }
+        
+        .btn-logout:hover {
+            background: rgba(255, 255, 255, 0.2);
+            border-color: rgba(255, 255, 255, 0.3);
+            color: white;
+            transform: translateY(-1px);
+        }
+        
+        /* Responsive navigation */
+        @@media (max-width: 991px) {
+            .nav-desktop {
+                display: none !important;
+            }
+            
+            .nav-mobile {
+                display: block !important;
+            }
+        }
+        
+        @@media (min-width: 992px) {
+            .nav-desktop {
+                display: flex !important;
+            }
+            
+            .nav-mobile {
+                display: none !important;
+            }
+        }
+    </style>
+</head>
+
+<body>
+    <!-- Header con autenticación -->
+    <header class="d-flex align-items-center justify-content-between p-3 bg-success text-white position-relative">
+        <!-- Logo y título -->
+        <div class="d-flex align-items-center">
+            <img src="~/images/Maceta.svg" alt="Logotipo Maceta" class="me-3 rounded-circle bg-success-subtle p-1"
+                style="width: 50px; height: 50px;">
+            <h1 class="m-0 fs-4 fw-bold">Connected Root</h1>
+        </div>
+        
+        <!-- Navegación Desktop -->
+        <nav class="nav-desktop d-none d-lg-flex">
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Home" asp-action="Index">
+                <i class="bi bi-house-door-fill me-2"></i>Dashboard
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Usuario" asp-action="Index">
+                <i class="bi bi-people-fill me-2"></i>Usuarios
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Huerto" asp-action="Index">
+                <i class="bi bi-tree me-2"></i>Huertos
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Zona" asp-action="Index">
+                <i class="bi bi-map me-2"></i>Zonas
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Sensor" asp-action="Index">
+                <i class="bi bi-cpu me-2"></i>Sensores
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Lectura" asp-action="Index">
+                <i class="bi bi-graph-up me-2"></i>Lecturas
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded me-2" asp-controller="Alerta" asp-action="Index">
+                <i class="bi bi-exclamation-triangle me-2"></i>Alertas
+            </a>
+            <a class="sidebar-link text-white py-2 px-3 rounded" asp-controller="Planta" asp-action="Index">
+                <i class="bi bi-flower2 me-2"></i>Plantas
+            </a>
+        </nav>
+        
+        <!-- Info de usuario y controles -->
+        <div class="d-flex align-items-center">
+            <!-- Info del usuario (Desktop) -->
+            <div class="user-info me-3 d-none d-md-block">
+                <div class="d-flex align-items-center">
+                    <div class="me-2">
+                        <div class="bg-white text-success rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 35px; height: 35px;">
+                            <i class="fas fa-user fa-sm"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <small class="opacity-75 d-block" style="font-size: 0.75rem;">Bienvenido,</small>
+                        <strong style="font-size: 0.85rem;">@User.FindFirst("NombreCompleto")?.Value</strong>
+                    </div>
+                </div>
+            </div>
+            
+            <!-- Menú móvil -->
+            <div class="nav-mobile d-lg-none me-2">
+                <div class="dropdown">
+                    <button class="btn btn-outline-light btn-sm dropdown-toggle" type="button" 
+                            data-bs-toggle="dropdown" aria-expanded="false">
+                        <i class="fas fa-bars"></i> Menú
+                    </button>
+                    <ul class="dropdown-menu dropdown-menu-end">
+                        <li><a class="dropdown-item" asp-controller="Home" asp-action="Index">
+                            <i class="bi bi-house-door-fill me-2"></i>Dashboard</a></li>
+                        <li><a class="dropdown-item" asp-controller="Usuario" asp-action="Index">
+                            <i class="bi bi-people-fill me-2"></i>Usuarios</a></li>
+                        <li><a class="dropdown-item" asp-controller="Huerto" asp-action="Index">
+                            <i class="bi bi-tree me-2"></i>Huertos</a></li>
+                        <li><a class="dropdown-item" asp-controller="Zona" asp-action="Index">
+                            <i class="bi bi-map me-2"></i>Zonas</a></li>
+                        <li><a class="dropdown-item" asp-controller="Sensor" asp-action="Index">
+                            <i class="bi bi-cpu me-2"></i>Sensores</a></li>
+                        <li><a class="dropdown-item" asp-controller="Lectura" asp-action="Index">
+                            <i class="bi bi-graph-up me-2"></i>Lecturas</a></li>
+                        <li><a class="dropdown-item" asp-controller="Alerta" asp-action="Index">
+                            <i class="bi bi-exclamation-triangle me-2"></i>Alertas</a></li>
+                        <li><a class="dropdown-item" asp-controller="Planta" asp-action="Index">
+                            <i class="bi bi-flower2 me-2"></i>Plantas</a></li>
+                        <li><hr class="dropdown-divider"></li>
+                        <li><span class="dropdown-item-text">
+                            <small><i class="fas fa-user me-1"></i>@User.FindFirst("NombreCompleto")?.Value</small>
+                        </span></li>
+                    </ul>
+                </div>
+            </div>
+            
+            <!-- Botón de logout -->
+            <form asp-controller="Auth" asp-action="Logout" method="post" class="d-inline">
+                @Html.AntiForgeryToken()
+                <button type="submit" class="btn btn-logout btn-sm" 
+                        onclick="return confirm('¿Está seguro que desea cerrar sesión?')"
+                        title="Cerrar Sesión">
+                    <i class="fas fa-sign-out-alt me-1"></i>
+                    <span class="d-none d-sm-inline">Salir</span>
+                </button>
+            </form>
+        </div>
+    </header>
+
+    <!-- Contenido principal -->
+    <main role="main" class="min-vh-100">
+        <!-- Información del usuario (móvil - opcional) -->
+        @if (ViewBag.ShowUserInfo == true)
+        {
+            <div class="container-fluid py-2 bg-light border-bottom d-lg-none">
+                <div class="d-flex align-items-center">
+                    <div class="me-2">
+                        <div class="bg-success text-white rounded-circle d-flex align-items-center justify-content-center" 
+                             style="width: 30px; height: 30px;">
+                            <i class="fas fa-user fa-sm"></i>
+                        </div>
+                    </div>
+                    <div>
+                        <small class="text-muted">Sesión iniciada como:</small><br>
+                        <strong class="text-success">@User.FindFirst("NombreCompleto")?.Value</strong>
+                        <span class="badge bg-success ms-2">@User.FindFirst(System.Security.Claims.ClaimTypes.Role)?.Value</span>
+                    </div>
+                </div>
+            </div>
+        }
+        
+        @RenderBody()
+    </main>
+
+    <!-- Footer -->
+    <footer class="bg-success text-white text-center py-4 mt-5 w-100">
+        <div class="container">
+            <div class="row">
+                <div class="col-md-6 text-md-start text-center">
+                    <p class="mb-0">© 2025 <strong>Connected Root</strong>. Todos los derechos reservados.</p>
+                </div>
+                <div class="col-md-6 text-md-end text-center">
+                    <small class="opacity-75">
+                        <i class="fas fa-shield-alt me-1"></i>Panel de Administración
+                    </small>
+                </div>
+            </div>
+        </div>
+    </footer>
+
+    <!-- Scripts principales -->
+    <script src="https://cdn.jsdelivr.net/npm/bootstrap@5.3.3/dist/js/bootstrap.bundle.min.js"></script>
+    <script src="https://cdn.jsdelivr.net/npm/chart.js"></script>
+    
+    <!-- Script para manejo de sesión -->
+    <script>
+        // Auto-logout después de inactividad (30 minutos)
+        let inactivityTimer;
+        let warningTimer;
+        const INACTIVITY_TIME = 30 * 60 * 1000; // 30 minutos
+        const WARNING_TIME = 25 * 60 * 1000; // 25 minutos
+        
+        function resetInactivityTimer() {
+            clearTimeout(inactivityTimer);
+            clearTimeout(warningTimer);
+            
+            // Mostrar advertencia a los 25 minutos
+            warningTimer = setTimeout(() => {
+                if (confirm('Su sesión expirará en 5 minutos por inactividad. ¿Desea continuar?')) {
+                    resetInactivityTimer();
+                }
+            }, WARNING_TIME);
+            
+            // Logout automático a los 30 minutos
+            inactivityTimer = setTimeout(() => {
+                alert('Su sesión ha expirado por inactividad.');
+                window.location.href = '@Url.Action("Logout", "Auth")';
+            }, INACTIVITY_TIME);
+        }
+        
+        // Eventos que resetean el timer
+        ['mousedown', 'mousemove', 'keypress', 'scroll', 'touchstart', 'click'].forEach(event => {
+            document.addEventListener(event, resetInactivityTimer, true);
+        });
+        
+        // Iniciar el timer
+        resetInactivityTimer();
+        
+        // Función para confirmar logout
+        function confirmLogout() {
+            return confirm('¿Está seguro que desea cerrar sesión?');
+        }
+        
+        // Prevenir submit múltiple en formularios
+        document.addEventListener('DOMContentLoaded', function() {
+            const forms = document.querySelectorAll('form');
+            forms.forEach(form => {
+                form.addEventListener('submit', function(e) {
+                    const submitBtn = form.querySelector('button[type="submit"]');
+                    if (submitBtn && !submitBtn.disabled) {
+                        setTimeout(() => {
+                            submitBtn.disabled = true;
+                            const originalText = submitBtn.innerHTML;
+                            submitBtn.innerHTML = '<i class="fas fa-spinner fa-spin me-1"></i>Procesando...';
+                            
+                            // Reactivar después de 3 segundos como fallback
+                            setTimeout(() => {
+                                submitBtn.disabled = false;
+                                submitBtn.innerHTML = originalText;
+                            }, 3000);
+                        }, 100);
+                    }
+                });
+            });
+        });
+    </script>
+   
+    @await RenderSectionAsync("Scripts", required: false)
+</body>
+
+</html>
