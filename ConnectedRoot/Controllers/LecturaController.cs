@@ -1,435 +1,327 @@
 using Microsoft.AspNetCore.Mvc;
 using ConnectedRoot.Services;
 using ConnectedRoot.Models;
-using ConnectedRoot.ViewModels;
 using MongoDB.Driver;
 using MongoDB.Bson;
+using Microsoft.AspNetCore.Authorization;
 
 namespace ConnectedRoot.Controllers
 {
-    public class LecturaController : Controller
+    [ApiController]
+    [Route("api/lecturas")] // ✅ CORREGIDO: Cambiar a plural para coincidir con frontend
+    [AllowAnonymous] // Permitir acceso sin autenticación para el simulador
+    public class LecturaController : ControllerBase
     {
         private readonly MongoDbService _mongoService;
+        private readonly ILogger<LecturaController> _logger;
 
-        public LecturaController(MongoDbService mongoService)
+        public LecturaController(MongoDbService mongoService, ILogger<LecturaController> logger)
         {
             _mongoService = mongoService;
+            _logger = logger;
         }
 
-        // GET: Lectura - MÉTODO ACTUALIZADO CON FILTROS Y PAGINACIÓN
-        public async Task<IActionResult> Index(string? busquedaTexto, string? filtroTipo, 
-            string? filtroSensor, string? filtroFechaDesde, string? filtroFechaHasta, int pagina = 1)
+        // POST: api/lecturas
+        [HttpPost]
+        public async Task<IActionResult> CrearLectura([FromBody] Lectura lectura)
         {
             try
             {
-                const int lecturasPorPagina = 15;
+                if (!ModelState.IsValid)
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        error = "Datos inválidos", 
+                        details = ModelState 
+                    });
+                }
+
+                // Validaciones básicas
+                if (string.IsNullOrEmpty(lectura.SensorId))
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        error = "SensorId es requerido" 
+                    });
+                }
+
+                if (string.IsNullOrEmpty(lectura.Tipo))
+                {
+                    return BadRequest(new { 
+                        success = false, 
+                        error = "Tipo es requerido" 
+                    });
+                }
+
+                // Validar rangos
+                if (lectura.Tipo.ToLower().Contains("temperatura"))
+                {
+                    if (lectura.Valor < -50 || lectura.Valor > 70)
+                    {
+                        return BadRequest(new { 
+                            success = false, 
+                            error = "Valor de temperatura fuera de rango válido (-50°C a 70°C)" 
+                        });
+                    }
+                }
+                else if (lectura.Tipo.ToLower().Contains("humedad"))
+                {
+                    if (lectura.Valor < 0 || lectura.Valor > 100)
+                    {
+                        return BadRequest(new { 
+                            success = false, 
+                            error = "Valor de humedad fuera de rango válido (0% a 100%)" 
+                        });
+                    }
+                }
+
+                // Establecer fecha si no viene
+                if (lectura.FechaHora == default)
+                {
+                    lectura.FechaHora = DateTime.Now;
+                }
+
+                await _mongoService.Lecturas.InsertOneAsync(lectura);
                 
-                // Crear el filtro base
+                _logger.LogInformation("📊 Lectura guardada: {Tipo} = {Valor}{Unidad} (Sensor: {SensorId})", 
+                    lectura.Tipo, lectura.Valor, lectura.Unidad, lectura.SensorId);
+
+                return CreatedAtAction(nameof(ObtenerLectura), new { id = lectura.Id }, new { 
+                    success = true, 
+                    data = lectura,
+                    message = "Lectura guardada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al guardar lectura");
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor",
+                    details = ex.Message 
+                });
+            }
+        }
+
+        // GET: api/lecturas/{id}
+        [HttpGet("{id}")]
+        public async Task<IActionResult> ObtenerLectura(string id)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(id))
+                {
+                    return BadRequest(new { success = false, error = "ID requerido" });
+                }
+
+                var lectura = await _mongoService.Lecturas.Find(l => l.Id == id).FirstOrDefaultAsync();
+                
+                if (lectura == null)
+                {
+                    return NotFound(new { success = false, error = "Lectura no encontrada" });
+                }
+
+                return Ok(new { success = true, data = lectura });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener lectura {Id}", id);
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor" 
+                });
+            }
+        }
+
+        // GET: api/lecturas/ultimas/{sensorId}
+        [HttpGet("ultimas/{sensorId}")]
+        public async Task<IActionResult> ObtenerUltimasLecturas(string sensorId, [FromQuery] int limit = 10)
+        {
+            try
+            {
+                if (string.IsNullOrEmpty(sensorId))
+                {
+                    return BadRequest(new { success = false, error = "SensorId requerido" });
+                }
+
+                // Limitar el número máximo de resultados
+                limit = Math.Min(Math.Max(limit, 1), 100);
+
+                var lecturas = await _mongoService.Lecturas
+                    .Find(l => l.SensorId == sensorId)
+                    .SortByDescending(l => l.FechaHora)
+                    .Limit(limit)
+                    .ToListAsync();
+
+                _logger.LogDebug("📋 Obtenidas {Count} lecturas para sensor {SensorId}", lecturas.Count, sensorId);
+
+                return Ok(new { 
+                    success = true, 
+                    data = lecturas,
+                    count = lecturas.Count,
+                    sensorId = sensorId
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al obtener últimas lecturas para sensor {SensorId}", sensorId);
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor" 
+                });
+            }
+        }
+
+        // GET: api/lecturas
+        [HttpGet]
+        public async Task<IActionResult> ObtenerLecturas(
+            [FromQuery] string? sensorId = null,
+            [FromQuery] string? tipo = null,
+            [FromQuery] DateTime? fechaInicio = null,
+            [FromQuery] DateTime? fechaFin = null,
+            [FromQuery] int limit = 50,
+            [FromQuery] int page = 1)
+        {
+            try
+            {
+                // Construir filtros
                 var filterBuilder = Builders<Lectura>.Filter;
                 var filtros = new List<FilterDefinition<Lectura>>();
 
-                // Filtro por texto (tipo o valor)
-                if (!string.IsNullOrWhiteSpace(busquedaTexto))
+                if (!string.IsNullOrEmpty(sensorId))
                 {
-                    var textoFiltro = filterBuilder.Or(
-                        filterBuilder.Regex(l => l.Tipo, new BsonRegularExpression(busquedaTexto, "i")),
-                        filterBuilder.Regex(l => l.Unidad, new BsonRegularExpression(busquedaTexto, "i"))
-                    );
-                    filtros.Add(textoFiltro);
+                    filtros.Add(filterBuilder.Eq(l => l.SensorId, sensorId));
                 }
 
-                // Filtro por tipo
-                if (!string.IsNullOrWhiteSpace(filtroTipo) && filtroTipo != "Todos")
+                if (!string.IsNullOrEmpty(tipo))
                 {
-                    filtros.Add(filterBuilder.Regex(l => l.Tipo, new BsonRegularExpression($"^{filtroTipo}$", "i")));
+                    filtros.Add(filterBuilder.Eq(l => l.Tipo, tipo));
                 }
 
-                // Filtro por sensor
-                if (!string.IsNullOrWhiteSpace(filtroSensor) && filtroSensor != "Todos")
+                if (fechaInicio.HasValue || fechaFin.HasValue)
                 {
-                    filtros.Add(filterBuilder.Eq(l => l.SensorId, filtroSensor));
+                    var fechaFilter = filterBuilder.Empty;
+                    if (fechaInicio.HasValue)
+                    {
+                        fechaFilter &= filterBuilder.Gte(l => l.FechaHora, fechaInicio.Value);
+                    }
+                    if (fechaFin.HasValue)
+                    {
+                        fechaFilter &= filterBuilder.Lte(l => l.FechaHora, fechaFin.Value);
+                    }
+                    filtros.Add(fechaFilter);
                 }
 
-                // Filtro por fecha desde
-                if (!string.IsNullOrWhiteSpace(filtroFechaDesde) && DateTime.TryParse(filtroFechaDesde, out var fechaDesde))
-                {
-                    filtros.Add(filterBuilder.Gte(l => l.FechaHora, fechaDesde));
-                }
-
-                // Filtro por fecha hasta
-                if (!string.IsNullOrWhiteSpace(filtroFechaHasta) && DateTime.TryParse(filtroFechaHasta, out var fechaHasta))
-                {
-                    filtros.Add(filterBuilder.Lte(l => l.FechaHora, fechaHasta.AddDays(1).AddSeconds(-1)));
-                }
-
-                // Combinar todos los filtros
                 var filtroFinal = filtros.Count > 0 
                     ? filterBuilder.And(filtros) 
                     : filterBuilder.Empty;
 
-                // Contar total de lecturas que cumplen el filtro
-                var totalLecturas = await _mongoService.Lecturas.CountDocumentsAsync(filtroFinal);
+                // Limitar resultados
+                limit = Math.Min(Math.Max(limit, 1), 1000);
+                var skip = (Math.Max(page, 1) - 1) * limit;
 
-                // Calcular paginación
-                var totalPaginas = (int)Math.Ceiling((double)totalLecturas / lecturasPorPagina);
-                var lecturasAOmitir = (pagina - 1) * lecturasPorPagina;
-
-                // Obtener lecturas de la página actual
                 var lecturas = await _mongoService.Lecturas
                     .Find(filtroFinal)
                     .Sort(Builders<Lectura>.Sort.Descending(l => l.FechaHora))
-                    .Skip(lecturasAOmitir)
-                    .Limit(lecturasPorPagina)
+                    .Skip(skip)
+                    .Limit(limit)
                     .ToListAsync();
 
-                // Obtener sensores, zonas y huertos para lookup
-                var sensores = await _mongoService.Sensores.Find(_ => true).ToListAsync();
-                var zonas = await _mongoService.Zonas.Find(_ => true).ToListAsync();
-                var huertos = await _mongoService.Huertos.Find(_ => true).ToListAsync();
-                
-                // Crear diccionarios para búsquedas rápidas
-                var sensoresDict = sensores
-                    .Where(s => !string.IsNullOrEmpty(s.Id))
-                    .ToDictionary(s => s.Id!, s => s);
-                
-                var zonasDict = zonas
-                    .Where(z => !string.IsNullOrEmpty(z.Id))
-                    .ToDictionary(z => z.Id!, z => z);
-                
-                var huertosDict = huertos
-                    .Where(h => !string.IsNullOrEmpty(h.Id))
-                    .ToDictionary(h => h.Id!, h => h);
+                var total = await _mongoService.Lecturas.CountDocumentsAsync(filtroFinal);
 
-                var nombresSensores = sensores
-                    .Where(s => !string.IsNullOrEmpty(s.Id))
-                    .ToDictionary(s => s.Id!, s => $"{s.Tipo} - {s.Modelo}");
-
-                var nombresZonas = zonas
-                    .Where(z => !string.IsNullOrEmpty(z.Id))
-                    .ToDictionary(z => z.Id!, z => z.NombreZona ?? "Sin nombre");
-
-                var nombresHuertos = huertos
-                    .Where(h => !string.IsNullOrEmpty(h.Id))
-                    .ToDictionary(h => h.Id!, h => h.NombreHuerto ?? "Sin nombre");
-
-                var sensoresDisponibles = new Dictionary<string, string> { { "Todos", "Todos los sensores" } };
-                foreach (var sensor in sensores.Where(s => !string.IsNullOrEmpty(s.Id)))
-                {
-                    var zona = zonasDict.TryGetValue(sensor.ZonaId ?? "", out var z) ? z : null;
-                    var nombreZona = zona?.NombreZona ?? "Zona desconocida";
-                    sensoresDisponibles[sensor.Id!] = $"{sensor.Tipo} - {nombreZona}";
-                }
-
-                // Crear el ViewModel
-                var viewModel = new LecturaPaginadoViewModel
-                {
-                    Lecturas = lecturas,
-                    PaginaActual = pagina,
-                    TotalPaginas = totalPaginas,
-                    TotalLecturas = (int)totalLecturas,
-                    LecturasPorPagina = lecturasPorPagina,
-                    BusquedaTexto = busquedaTexto,
-                    FiltroTipo = filtroTipo ?? "Todos",
-                    FiltroSensor = filtroSensor ?? "Todos",
-                    FiltroFechaDesde = filtroFechaDesde,
-                    FiltroFechaHasta = filtroFechaHasta,
-                    SensoresDisponibles = sensoresDisponibles,
-                    NombresSensores = nombresSensores,
-                    NombresZonas = nombresZonas,
-                    NombresHuertos = nombresHuertos
-                };
-
-                // Mostrar mensaje de éxito si existe
-                if (TempData["Success"] != null)
-                {
-                    ViewBag.Success = TempData["Success"]!.ToString();
-                }
-                
-                return View(viewModel);
+                return Ok(new { 
+                    success = true, 
+                    data = lecturas,
+                    pagination = new {
+                        currentPage = page,
+                        totalPages = (int)Math.Ceiling((double)total / limit),
+                        totalRecords = total,
+                        pageSize = limit
+                    }
+                });
             }
             catch (Exception ex)
             {
-                ViewBag.Error = $"Error de conexión: {ex.Message}";
-                return View(new LecturaPaginadoViewModel());
+                _logger.LogError(ex, "❌ Error al obtener lecturas");
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor" 
+                });
             }
         }
 
-        // GET: Lectura/Create
-        public async Task<IActionResult> Create(string? sensorId = null)
-        {
-            // Obtener sensores activos
-            var sensores = await _mongoService.Sensores.Find(s => s.Estado == "activo").ToListAsync();
-            var zonas = await _mongoService.Zonas.Find(_ => true).ToListAsync();
-            var huertos = await _mongoService.Huertos.Find(_ => true).ToListAsync();
-
-            var sensoresConInfo = sensores.Select(s =>
-            {
-                var zona = zonas.FirstOrDefault(z => z.Id == s.ZonaId);
-                var huerto = zona != null ? huertos.FirstOrDefault(h => h.Id == zona.HuertoId) : null;
-
-                return new
-                {
-                    SensorId = s.Id,
-                    Display = $"{s.Tipo} ({s.Modelo}) - {zona?.NombreZona} - {huerto?.NombreHuerto}",
-                    Tipo = s.Tipo
-                };
-            }).ToList();
-
-            ViewBag.SensoresConInfo = sensoresConInfo;
-
-            // Si viene de un sensor específico
-            if (!string.IsNullOrEmpty(sensorId))
-            {
-                ViewBag.SensorSeleccionado = sensorId;
-                var sensor = sensores.FirstOrDefault(s => s.Id == sensorId);
-                ViewBag.TipoSensor = sensor?.Tipo;
-            }
-
-            return View();
-        }
-
-        // POST: Lectura/Create
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Create(Lectura lectura)
+        // GET: api/lecturas/estadisticas
+        [HttpGet("estadisticas")]
+        public async Task<IActionResult> ObtenerEstadisticas([FromQuery] string? sensorId = null)
         {
             try
             {
-                if (!ModelState.IsValid)
-                {
-                    await CargarDatosParaFormulario();
-                    return View(lectura);
-                }
+                var filterBuilder = Builders<Lectura>.Filter;
+                var filtro = string.IsNullOrEmpty(sensorId) 
+                    ? filterBuilder.Empty 
+                    : filterBuilder.Eq(l => l.SensorId, sensorId);
 
-                // Validar que el sensor existe y está activo
-                var sensor = await _mongoService.Sensores.Find(s => s.Id == lectura.SensorId && s.Estado == "activo").FirstOrDefaultAsync();
-                if (sensor == null)
-                {
-                    ModelState.AddModelError("SensorId", "El sensor seleccionado no existe o está inactivo.");
-                    await CargarDatosParaFormulario();
-                    return View(lectura);
-                }
-
-                ValidarLectura(lectura);
-                
-                await _mongoService.Lecturas.InsertOneAsync(lectura);
-                TempData["Success"] = "Lectura registrada exitosamente.";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = $"Error al registrar lectura: {ex.Message}";
-                await CargarDatosParaFormulario();
-                return View(lectura);
-            }
-        }
-
-        // GET: Lectura/Edit/5
-        public async Task<IActionResult> Edit(string id)
-        {
-            if (string.IsNullOrEmpty(id))
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                var lectura = await _mongoService.Lecturas.Find(l => l.Id == id).FirstOrDefaultAsync();
-                if (lectura == null)
-                {
-                    TempData["Error"] = "Lectura no encontrada.";
-                    return RedirectToAction("Index");
-                }
-
-                await CargarDatosParaFormulario();
-                return View(lectura);
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"Error al obtener lectura: {ex.Message}";
-                return RedirectToAction("Index");
-            }
-        }
-
-        // POST: Lectura/Edit/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Edit(string id, Lectura lectura)
-        {
-            if (id != lectura.Id)
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                if (!ModelState.IsValid)
-                {
-                    await CargarDatosParaFormulario();
-                    return View(lectura);
-                }
-
-                var lecturaActual = await _mongoService.Lecturas.Find(l => l.Id == id).FirstOrDefaultAsync();
-                if (lecturaActual == null)
-                {
-                    TempData["Error"] = "Lectura no encontrada.";
-                    return RedirectToAction("Index");
-                }
-
-                ValidarLectura(lectura);
-
-                var filter = Builders<Lectura>.Filter.Eq(l => l.Id, id);
-                await _mongoService.Lecturas.ReplaceOneAsync(filter, lectura);
-                
-                TempData["Success"] = "Lectura actualizada exitosamente.";
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                ViewBag.Error = $"Error al actualizar lectura: {ex.Message}";
-                await CargarDatosParaFormulario();
-                return View(lectura);
-            }
-        }
-
-        // GET: Lectura/Details/5
-        public async Task<IActionResult> Details(string id)
-        {
-            if (string.IsNullOrEmpty(id))
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                var lectura = await _mongoService.Lecturas.Find(l => l.Id == id).FirstOrDefaultAsync();
-                if (lectura == null)
-                {
-                    TempData["Error"] = "Lectura no encontrada.";
-                    return RedirectToAction("Index");
-                }
-
-                // Obtener información del sensor, zona y huerto
-                var sensor = await _mongoService.Sensores.Find(s => s.Id == lectura.SensorId).FirstOrDefaultAsync();
-                var zona = sensor != null ? await _mongoService.Zonas.Find(z => z.Id == sensor.ZonaId).FirstOrDefaultAsync() : null;
-                var huerto = zona != null ? await _mongoService.Huertos.Find(h => h.Id == zona.HuertoId).FirstOrDefaultAsync() : null;
-                
-                ViewBag.Sensor = sensor;
-                ViewBag.Zona = zona;
-                ViewBag.Huerto = huerto;
-
-                // Obtener lecturas relacionadas (del mismo sensor, cerca en tiempo)
-                var lecturasRelacionadas = await _mongoService.Lecturas
-                    .Find(l => l.SensorId == lectura.SensorId && l.Id != lectura.Id)
-                    .Sort(Builders<Lectura>.Sort.Descending(l => l.FechaHora))
-                    .Limit(5)
+                var estadisticas = await _mongoService.Lecturas.Aggregate()
+                    .Match(filtro)
+                    .Group(new BsonDocument
+                    {
+                        { "_id", new BsonDocument { { "sensorId", "$sensorId" }, { "tipo", "$tipo" } } },
+                        { "ultimaLectura", new BsonDocument("$max", "$fechaHora") },
+                        { "valorPromedio", new BsonDocument("$avg", "$valor") },
+                        { "valorMinimo", new BsonDocument("$min", "$valor") },
+                        { "valorMaximo", new BsonDocument("$max", "$valor") },
+                        { "totalLecturas", new BsonDocument("$sum", 1) }
+                    })
+                    .Sort(new BsonDocument("ultimaLectura", -1))
                     .ToListAsync();
-                
-                ViewBag.LecturasRelacionadas = lecturasRelacionadas;
 
-                return View(lectura);
+                return Ok(new { 
+                    success = true, 
+                    data = estadisticas 
+                });
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error al obtener detalles de la lectura: {ex.Message}";
-                return RedirectToAction("Index");
+                _logger.LogError(ex, "❌ Error al obtener estadísticas");
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor" 
+                });
             }
         }
 
-        // POST: Lectura/Delete/5
-        [HttpPost]
-        [ValidateAntiForgeryToken]
-        public async Task<IActionResult> Delete(string id)
-        {
-            if (string.IsNullOrEmpty(id))
-            {
-                return NotFound();
-            }
-
-            try
-            {
-                var lectura = await _mongoService.Lecturas.Find(l => l.Id == id).FirstOrDefaultAsync();
-                if (lectura == null)
-                {
-                    TempData["Error"] = "Lectura no encontrada.";
-                    return RedirectToAction("Index");
-                }
-
-                await _mongoService.Lecturas.DeleteOneAsync(l => l.Id == id);
-                TempData["Success"] = "Lectura eliminada exitosamente.";
-                
-                return RedirectToAction("Index");
-            }
-            catch (Exception ex)
-            {
-                TempData["Error"] = $"Error al eliminar lectura: {ex.Message}";
-                return RedirectToAction("Index");
-            }
-        }
-
-        // GET: Lectura/BySensor/5
-        public async Task<IActionResult> BySensor(string id)
+        // DELETE: api/lectura/{id}
+        [HttpDelete("{id}")]
+        public async Task<IActionResult> EliminarLectura(string id)
         {
             try
             {
-                var sensor = await _mongoService.Sensores.Find(s => s.Id == id).FirstOrDefaultAsync();
-                if (sensor == null)
+                if (string.IsNullOrEmpty(id))
                 {
-                    return NotFound();
+                    return BadRequest(new { success = false, error = "ID requerido" });
                 }
 
-                return RedirectToAction("Index", new { filtroSensor = id });
+                var resultado = await _mongoService.Lecturas.DeleteOneAsync(l => l.Id == id);
+                
+                if (resultado.DeletedCount == 0)
+                {
+                    return NotFound(new { success = false, error = "Lectura no encontrada" });
+                }
+
+                _logger.LogInformation("🗑️ Lectura eliminada: {Id}", id);
+
+                return Ok(new { 
+                    success = true, 
+                    message = "Lectura eliminada exitosamente" 
+                });
             }
             catch (Exception ex)
             {
-                TempData["Error"] = $"Error: {ex.Message}";
-                return RedirectToAction("Index");
-            }
-        }
-
-        // Método privado para cargar datos para formularios
-        private async Task CargarDatosParaFormulario()
-        {
-            var sensores = await _mongoService.Sensores.Find(s => s.Estado == "activo").ToListAsync();
-            var zonas = await _mongoService.Zonas.Find(_ => true).ToListAsync();
-            var huertos = await _mongoService.Huertos.Find(_ => true).ToListAsync();
-
-            var sensoresConInfo = sensores.Select(s =>
-            {
-                var zona = zonas.FirstOrDefault(z => z.Id == s.ZonaId);
-                var huerto = zona != null ? huertos.FirstOrDefault(h => h.Id == zona.HuertoId) : null;
-
-                return new
-                {
-                    SensorId = s.Id,
-                    Display = $"{s.Tipo} ({s.Modelo}) - {zona?.NombreZona} - {huerto?.NombreHuerto}",
-                    Tipo = s.Tipo
-                };
-            }).ToList();
-
-            ViewBag.SensoresConInfo = sensoresConInfo;
-        }
-
-        // Método privado para validar y limpiar datos de la lectura
-        private void ValidarLectura(Lectura lectura)
-        {
-            lectura.Tipo = string.IsNullOrWhiteSpace(lectura.Tipo) ? string.Empty : lectura.Tipo.Trim();
-            lectura.Unidad = string.IsNullOrWhiteSpace(lectura.Unidad) ? string.Empty : lectura.Unidad.Trim();
-            
-            // Validar rango de valores según el tipo
-            if (lectura.Tipo.ToLower().Contains("temperatura"))
-            {
-                if (lectura.Valor < -50 || lectura.Valor > 100)
-                {
-                    throw new ArgumentException("Valor de temperatura fuera de rango válido (-50°C a 100°C)");
-                }
-            }
-            else if (lectura.Tipo.ToLower().Contains("humedad"))
-            {
-                if (lectura.Valor < 0 || lectura.Valor > 100)
-                {
-                    throw new ArgumentException("Valor de humedad fuera de rango válido (0% a 100%)");
-                }
+                _logger.LogError(ex, "❌ Error al eliminar lectura {Id}", id);
+                return StatusCode(500, new { 
+                    success = false, 
+                    error = "Error interno del servidor" 
+                });
             }
         }
     }

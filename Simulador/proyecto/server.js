@@ -309,7 +309,7 @@ app.post('/api/lecturas/batch', async (req, res) => {
 
 // Ruta para servir el archivo HTML principal
 app.get('/', (req, res) => {
-    res.sendFile(path.join(__dirname, 'public', 'index.html'));
+    res.sendFile(path.join(__dirname, 'public', 'Index.html'));
 });
 
 // Middleware de manejo de errores
