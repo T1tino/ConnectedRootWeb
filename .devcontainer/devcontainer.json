@@ -5,7 +5,7 @@
   ],
   "service": "app",
   "workspaceFolder": "/workspace",
-  "postCreateCommand": "dotnet restore ConnectedRoot/ConnectedRoot.csproj && cd Simulador/proyecto && npm install",
+  "postCreateCommand": "./setup.sh",
   "customizations": {
     "vscode": {
       "extensions": [
