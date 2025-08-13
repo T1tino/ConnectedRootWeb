@@ -1,0 +1,12 @@
+{
+  "name": "connectedroot-all",
+  "version": "1.0.0",
+  "scripts": {
+    "start:backend": "dotnet run --project ConnectedRoot",
+    "start:simulador": "npm --prefix Simulador/proyecto run dev",
+    "start:all": "concurrently \"npm run start:backend\" \"npm run start:simulador\""
+  },
+  "devDependencies": {
+    "concurrently": "^8.2.0"
+  }
+}
