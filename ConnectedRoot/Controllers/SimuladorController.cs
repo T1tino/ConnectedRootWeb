@@ -9,18 +9,19 @@ namespace ConnectedRoot.Controllers
 {
     [ApiController]
     [Route("api/[controller]")]
-    [AllowAnonymous] // ✅ AGREGADO: Permitir acceso sin autenticación en desarrollo
+    [AllowAnonymous]
     public class SimuladorController : ControllerBase
     {
         private readonly MongoDbService _mongoService;
         private readonly ILogger<SimuladorController> _logger;
         private readonly IConfiguration _configuration;
-        
-        // Diccionarios estáticos para mantener el estado entre requests
-        private static readonly Dictionary<string, Timer> _timers = new();
+
+        // CAMBIO CRÍTICO: Usar CancellationTokenSource en lugar de Timer
+        private static readonly Dictionary<string, CancellationTokenSource> _cancellationTokens = new();
+        private static readonly Dictionary<string, Task> _simuladorTasks = new();
         private static readonly Dictionary<string, bool> _simuladorEstado = new();
         private static readonly Random _random = new();
-        private static readonly object _lock = new(); // ✅ AGREGADO: Lock para thread safety
+        private static readonly object _lock = new();
 
         public SimuladorController(MongoDbService mongoService, ILogger<SimuladorController> logger, IConfiguration configuration)
         {
@@ -36,16 +37,15 @@ namespace ConnectedRoot.Controllers
             try
             {
                 _logger.LogInformation("🚀 Iniciando simulador para sensor: {SensorId}", request.SensorId);
-                
+
                 var sensorId = request.SensorId;
-                
-                // ✅ MEJORADO: Validación más robusta
+
                 if (string.IsNullOrEmpty(sensorId))
                 {
                     return BadRequest(new { error = "SensorId es requerido", success = false });
                 }
 
-                // Verificar que el sensor existe (con mejor manejo de errores)
+                // Verificar que el sensor existe
                 var sensor = await _mongoService.Sensores.Find(s => s.Id == sensorId).FirstOrDefaultAsync();
                 if (sensor == null)
                 {
@@ -53,82 +53,262 @@ namespace ConnectedRoot.Controllers
                     return NotFound(new { error = "Sensor no encontrado", success = false, sensorId });
                 }
 
-                lock (_lock) // ✅ AGREGADO: Thread safety
+                lock (_lock)
                 {
-                    // Detener timer existente si lo hay
-                    if (_timers.ContainsKey(sensorId))
+                    // Detener simulador existente si lo hay
+                    if (_cancellationTokens.ContainsKey(sensorId))
                     {
-                        _timers[sensorId].Dispose();
-                        _timers.Remove(sensorId);
-                        _logger.LogInformation("🔄 Timer existente detenido para sensor: {SensorId}", sensorId);
+                        _logger.LogInformation("🔄 Deteniendo simulador existente para sensor: {SensorId}", sensorId);
+                        _cancellationTokens[sensorId].Cancel();
+                        _cancellationTokens.Remove(sensorId);
+                        if (_simuladorTasks.ContainsKey(sensorId))
+                        {
+                            _simuladorTasks.Remove(sensorId);
+                        }
                     }
 
-                    // Marcar como activo
+                    // Crear nuevo token de cancelación
+                    var cts = new CancellationTokenSource();
+                    _cancellationTokens[sensorId] = cts;
                     _simuladorEstado[sensorId] = true;
 
-                    // ✅ MEJORADO: Leer intervalo desde configuración
-                    var intervaloSegundos = _configuration.GetValue<int>("SimuladorSettings:IntervaloActualizacion", 10);
-                    
-                    // Crear nuevo timer que ejecute cada X segundos
-                    var timer = new Timer(async _ => await GenerarLecturaAutomatica(sensorId), 
-                                        null, TimeSpan.Zero, TimeSpan.FromSeconds(intervaloSegundos));
-                    
-                    _timers[sensorId] = timer;
+                    // SOLUCIÓN CRÍTICA: Usar Task.Run en lugar de Timer
+                    var task = Task.Run(async () => await EjecutarSimulacionContinua(sensorId, cts.Token));
+                    _simuladorTasks[sensorId] = task;
                 }
 
                 _logger.LogInformation("✅ Simulador iniciado exitosamente para sensor: {SensorId}", sensorId);
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = $"Simulador iniciado para sensor {sensorId}",
                     sensorId = sensorId,
                     intervalo = $"{_configuration.GetValue<int>("SimuladorSettings:IntervaloActualizacion", 10)} segundos",
-                    sensorTipo = sensor.Tipo,
                     timestamp = DateTime.Now
                 });
             }
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al iniciar simulador para sensor: {SensorId}", request.SensorId);
-                return StatusCode(500, new { 
-                    error = $"Error al iniciar simulador: {ex.Message}", 
+                return StatusCode(500, new
+                {
+                    error = $"Error al iniciar simulador: {ex.Message}",
                     success = false,
-                    sensorId = request.SensorId 
+                    sensorId = request.SensorId
                 });
+            }
+        }
+
+        // NUEVO MÉTODO: Ejecutar simulación continua de forma segura
+        private async Task EjecutarSimulacionContinua(string sensorId, CancellationToken cancellationToken)
+        {
+            var intervaloSegundos = _configuration.GetValue<int>("SimuladorSettings:IntervaloActualizacion", 10);
+            _logger.LogInformation("🎯 Iniciando simulación continua para sensor: {SensorId}, intervalo: {Intervalo}s", sensorId, intervaloSegundos);
+
+            try
+            {
+                while (!cancellationToken.IsCancellationRequested)
+                {
+                    try
+                    {
+                        // GENERAR LECTURA INMEDIATAMENTE
+                        await GenerarYGuardarLectura(sensorId);
+                        
+                        // Esperar el intervalo antes de la próxima lectura
+                        await Task.Delay(TimeSpan.FromSeconds(intervaloSegundos), cancellationToken);
+                    }
+                    catch (OperationCanceledException)
+                    {
+                        _logger.LogInformation("🛑 Simulación cancelada para sensor: {SensorId}", sensorId);
+                        break;
+                    }
+                    catch (Exception ex)
+                    {
+                        _logger.LogError(ex, "❌ Error en ciclo de simulación para sensor: {SensorId}", sensorId);
+                        // Continuar después de un breve delay para evitar spam de errores
+                        try
+                        {
+                            await Task.Delay(2000, cancellationToken);
+                        }
+                        catch (OperationCanceledException)
+                        {
+                            break;
+                        }
+                    }
+                }
+            }
+            finally
+            {
+                lock (_lock)
+                {
+                    _simuladorEstado[sensorId] = false;
+                    _cancellationTokens.Remove(sensorId);
+                    _simuladorTasks.Remove(sensorId);
+                }
+                _logger.LogInformation("🏁 Simulación terminada para sensor: {SensorId}", sensorId);
+            }
+        }
+
+        // MÉTODO CRÍTICO MEJORADO: Generar y guardar lectura con manejo robusto de errores
+        private async Task GenerarYGuardarLectura(string sensorId)
+        {
+            try
+            {
+                _logger.LogDebug("📊 Generando lectura para sensor: {SensorId}", sensorId);
+
+                // Verificar que el simulador sigue activo
+                if (!_simuladorEstado.ContainsKey(sensorId) || !_simuladorEstado[sensorId])
+                {
+                    _logger.LogWarning("⚠️ Simulador ya no está activo para sensor: {SensorId}", sensorId);
+                    return;
+                }
+
+                // Obtener información del sensor CON TIMEOUT
+                Sensor sensor;
+                try
+                {
+                    using var timeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(5));
+                    sensor = await _mongoService.Sensores.Find(s => s.Id == sensorId).FirstOrDefaultAsync(timeoutCts.Token);
+                    
+                    if (sensor == null)
+                    {
+                        _logger.LogError("❌ No se pudo encontrar el sensor: {SensorId}", sensorId);
+                        return;
+                    }
+                    
+                    _logger.LogDebug("✅ Sensor encontrado: {SensorId}, Tipo: {Tipo}", sensorId, sensor.Tipo);
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ Error al obtener sensor {SensorId} desde MongoDB", sensorId);
+                    return;
+                }
+
+                // Generar la lectura
+                Lectura lectura = GenerarLecturaPorTipo(sensor, sensorId);
+                _logger.LogDebug("📝 Lectura generada: {Tipo} = {Valor}{Unidad}", lectura.Tipo, lectura.Valor, lectura.Unidad);
+
+                // GUARDAR EN BASE DE DATOS CON TIMEOUT Y VERIFICACIÓN
+                try
+                {
+                    using var insertTimeoutCts = new CancellationTokenSource(TimeSpan.FromSeconds(10));
+                    
+                    _logger.LogDebug("💾 Intentando guardar lectura en MongoDB...");
+                    await _mongoService.Lecturas.InsertOneAsync(lectura, cancellationToken: insertTimeoutCts.Token);
+                    
+                    _logger.LogInformation("✅ LECTURA GUARDADA EXITOSAMENTE: {Tipo} = {Valor}{Unidad} (Sensor: {SensorId})", 
+                        lectura.Tipo, lectura.Valor, lectura.Unidad, sensorId);
+
+                    // VERIFICACIÓN ADICIONAL: Confirmar que se guardó
+                    try
+                    {
+                        var verificacionCount = await _mongoService.Lecturas
+                            .CountDocumentsAsync(l => l.SensorId == sensorId && l.FechaHora >= DateTime.Now.AddMinutes(-2));
+                        
+                        _logger.LogDebug("📈 Total de lecturas recientes para sensor {SensorId}: {Count}", sensorId, verificacionCount);
+                    }
+                    catch (Exception verEx)
+                    {
+                        _logger.LogWarning(verEx, "⚠️ No se pudo verificar el guardado, pero la inserción fue exitosa");
+                    }
+                }
+                catch (Exception ex)
+                {
+                    _logger.LogError(ex, "❌ ERROR CRÍTICO: No se pudo guardar la lectura en MongoDB para sensor: {SensorId}. Error: {Error}", sensorId, ex.Message);
+                    _logger.LogError("Stack trace: {StackTrace}", ex.StackTrace);
+                    
+                    // Intentar diagnosticar el problema
+                    try
+                    {
+                        var testConnection = await _mongoService.Sensores.CountDocumentsAsync(FilterDefinition<Sensor>.Empty);
+                        _logger.LogError("🔍 Test de conexión: se pueden contar {Count} sensores", testConnection);
+                    }
+                    catch (Exception connEx)
+                    {
+                        _logger.LogError(connEx, "❌ ERROR DE CONEXIÓN A MONGODB DETECTADO");
+                    }
+                    
+                    throw; // Re-lanzar para que se maneje en el nivel superior
+                }
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ ERROR GENERAL en GenerarYGuardarLectura para sensor: {SensorId}", sensorId);
+            }
+        }
+
+        private Lectura GenerarLecturaPorTipo(Sensor sensor, string sensorId)
+        {
+            if (sensor.Tipo.ToLower().Contains("temperatura"))
+            {
+                return GenerarLecturaTemperatura(sensorId);
+            }
+            else if (sensor.Tipo.ToLower().Contains("humedad"))
+            {
+                return GenerarLecturaHumedad(sensorId);
+            }
+            else
+            {
+                // Para sensores mixtos, alternar entre tipos
+                var tipoAleatorio = _random.Next(2);
+                return tipoAleatorio == 0 ? 
+                    GenerarLecturaTemperatura(sensorId) : 
+                    GenerarLecturaHumedad(sensorId);
             }
         }
 
         // POST: api/simulador/detener
         [HttpPost("detener")]
-        public IActionResult DetenerSimulador([FromBody] DetenerSimuladorRequest request)
+        public async Task<IActionResult> DetenerSimulador([FromBody] DetenerSimuladorRequest request)
         {
             try
             {
                 _logger.LogInformation("⏹️ Deteniendo simulador para sensor: {SensorId}", request.SensorId);
-                
+
                 var sensorId = request.SensorId;
 
-                // ✅ MEJORADO: Validación
                 if (string.IsNullOrEmpty(sensorId))
                 {
                     return BadRequest(new { error = "SensorId es requerido", success = false });
                 }
 
-                lock (_lock) // ✅ AGREGADO: Thread safety
+                lock (_lock)
                 {
-                    if (_timers.ContainsKey(sensorId))
+                    if (_cancellationTokens.ContainsKey(sensorId))
                     {
-                        _timers[sensorId].Dispose();
-                        _timers.Remove(sensorId);
+                        _cancellationTokens[sensorId].Cancel();
+                        _cancellationTokens.Remove(sensorId);
                     }
-
                     _simuladorEstado[sensorId] = false;
+                }
+
+                // Esperar a que la tarea termine
+                if (_simuladorTasks.ContainsKey(sensorId))
+                {
+                    try
+                    {
+                        await _simuladorTasks[sensorId].WaitAsync(TimeSpan.FromSeconds(5));
+                        _logger.LogInformation("✅ Tarea de simulación terminada correctamente para sensor: {SensorId}", sensorId);
+                    }
+                    catch (TimeoutException)
+                    {
+                        _logger.LogWarning("⏰ Timeout esperando que termine la simulación para sensor: {SensorId}", sensorId);
+                    }
+                    finally
+                    {
+                        lock (_lock)
+                        {
+                            _simuladorTasks.Remove(sensorId);
+                        }
+                    }
                 }
 
                 _logger.LogInformation("✅ Simulador detenido exitosamente para sensor: {SensorId}", sensorId);
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = $"Simulador detenido para sensor {sensorId}",
                     sensorId = sensorId,
                     timestamp = DateTime.Now
@@ -137,14 +317,99 @@ namespace ConnectedRoot.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al detener simulador para sensor: {SensorId}", request.SensorId);
-                return StatusCode(500, new { 
-                    error = $"Error al detener simulador: {ex.Message}", 
-                    success = false 
+                return StatusCode(500, new
+                {
+                    error = $"Error al detener simulador: {ex.Message}",
+                    success = false
                 });
             }
         }
 
-        // ✅ NUEVO: POST para iniciar todos los sensores
+        // MÉTODO DE DIAGNÓSTICO: Probar conexión a MongoDB
+        [HttpGet("test-conexion")]
+        public async Task<IActionResult> TestConexionMongoDB()
+        {
+            try
+            {
+                _logger.LogInformation("🔍 Probando conexión a MongoDB...");
+
+                var sensoresCount = await _mongoService.Sensores.CountDocumentsAsync(FilterDefinition<Sensor>.Empty);
+                var lecturasCount = await _mongoService.Lecturas.CountDocumentsAsync(FilterDefinition<Lectura>.Empty);
+
+                var resultado = new
+                {
+                    success = true,
+                    sensores = sensoresCount,
+                    lecturas = lecturasCount,
+                    timestamp = DateTime.Now,
+                    mensaje = "Conexión a MongoDB exitosa"
+                };
+
+                _logger.LogInformation("✅ Test de conexión exitoso: {Sensores} sensores, {Lecturas} lecturas", 
+                    sensoresCount, lecturasCount);
+
+                return Ok(resultado);
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ ERROR DE CONEXIÓN A MONGODB");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = ex.Message,
+                    tipo = "ConexionMongoDB",
+                    timestamp = DateTime.Now
+                });
+            }
+        }
+
+        // MÉTODO DE DIAGNÓSTICO: Generar una lectura de prueba
+        [HttpPost("test-lectura/{sensorId}")]
+        public async Task<IActionResult> GenerarLecturaPrueba(string sensorId)
+        {
+            try
+            {
+                _logger.LogInformation("🧪 Generando lectura de prueba para sensor: {SensorId}", sensorId);
+
+                var sensor = await _mongoService.Sensores.Find(s => s.Id == sensorId).FirstOrDefaultAsync();
+                if (sensor == null)
+                {
+                    return NotFound(new { error = "Sensor no encontrado", success = false });
+                }
+
+                var lectura = GenerarLecturaPorTipo(sensor, sensorId);
+                
+                await _mongoService.Lecturas.InsertOneAsync(lectura);
+                
+                _logger.LogInformation("✅ Lectura de prueba guardada exitosamente");
+
+                return Ok(new
+                {
+                    success = true,
+                    lectura = new
+                    {
+                        lectura.SensorId,
+                        lectura.Tipo,
+                        lectura.Valor,
+                        lectura.Unidad,
+                        lectura.FechaHora
+                    },
+                    mensaje = "Lectura de prueba generada y guardada exitosamente"
+                });
+            }
+            catch (Exception ex)
+            {
+                _logger.LogError(ex, "❌ Error al generar lectura de prueba");
+                return StatusCode(500, new
+                {
+                    success = false,
+                    error = ex.Message,
+                    sensorId = sensorId
+                });
+            }
+        }
+
+        // Resto de métodos originales (iniciar-todos, detener-todos, estado, etc.)
         [HttpPost("iniciar-todos")]
         public async Task<IActionResult> IniciarTodosLosSimuladores()
         {
@@ -178,7 +443,8 @@ namespace ConnectedRoot.Controllers
                     }
                 }
 
-                return Ok(new {
+                return Ok(new
+                {
                     success = true,
                     message = "Proceso de inicio completado",
                     resultados = resultados,
@@ -193,7 +459,6 @@ namespace ConnectedRoot.Controllers
             }
         }
 
-        // ✅ NUEVO: POST para detener todos los sensores
         [HttpPost("detener-todos")]
         public IActionResult DetenerTodosLosSimuladores()
         {
@@ -203,18 +468,20 @@ namespace ConnectedRoot.Controllers
 
                 lock (_lock)
                 {
-                    foreach (var timer in _timers.Values)
+                    foreach (var cts in _cancellationTokens.Values)
                     {
-                        timer.Dispose();
+                        cts.Cancel();
                     }
-                    _timers.Clear();
+                    _cancellationTokens.Clear();
+                    _simuladorTasks.Clear();
                     _simuladorEstado.Clear();
                 }
 
                 _logger.LogInformation("✅ Todos los simuladores detenidos");
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     message = "Todos los simuladores han sido detenidos",
                     timestamp = DateTime.Now
                 });
@@ -226,20 +493,20 @@ namespace ConnectedRoot.Controllers
             }
         }
 
-        // GET: api/simulador/estado/{sensorId}
         [HttpGet("estado/{sensorId}")]
         public IActionResult ObtenerEstadoSimulador(string sensorId)
         {
             try
             {
                 var activo = _simuladorEstado.ContainsKey(sensorId) && _simuladorEstado[sensorId];
-                var tieneTimer = _timers.ContainsKey(sensorId);
-                
-                return Ok(new { 
+                var tieneTask = _simuladorTasks.ContainsKey(sensorId);
+
+                return Ok(new
+                {
                     success = true,
                     sensorId = sensorId,
                     activo = activo,
-                    tieneTimer = tieneTimer,
+                    tieneTask = tieneTask,
                     timestamp = DateTime.Now
                 });
             }
@@ -250,39 +517,6 @@ namespace ConnectedRoot.Controllers
             }
         }
 
-        // ✅ NUEVO: GET para obtener estado de todos los simuladores
-        [HttpGet("estado")]
-        public IActionResult ObtenerEstadoTodosLosSimuladores()
-        {
-            try
-            {
-                lock (_lock)
-                {
-                    var estados = _simuladorEstado.Select(kvp => new
-                    {
-                        sensorId = kvp.Key,
-                        activo = kvp.Value,
-                        tieneTimer = _timers.ContainsKey(kvp.Key)
-                    }).ToList();
-
-                    return Ok(new
-                    {
-                        success = true,
-                        simuladoresActivos = estados.Count(e => e.activo),
-                        totalSimuladores = estados.Count,
-                        estados = estados,
-                        timestamp = DateTime.Now
-                    });
-                }
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error al obtener estado de todos los simuladores");
-                return StatusCode(500, new { error = ex.Message, success = false });
-            }
-        }
-
-        // GET: api/simulador/sensores
         [HttpGet("sensores")]
         public async Task<IActionResult> ObtenerSensoresDisponibles()
         {
@@ -302,13 +536,14 @@ namespace ConnectedRoot.Controllers
                     ZonaId = s.ZonaId,
                     Estado = s.Estado,
                     FechaInstalacion = s.FechaInstalacion,
-                    SimuladorActivo = !string.IsNullOrEmpty(s.Id) && 
-                                     _simuladorEstado.ContainsKey(s.Id) && 
+                    SimuladorActivo = !string.IsNullOrEmpty(s.Id) &&
+                                     _simuladorEstado.ContainsKey(s.Id) &&
                                      _simuladorEstado[s.Id]
                 }).ToList();
 
-                return Ok(new { 
-                    success = true, 
+                return Ok(new
+                {
+                    success = true,
                     sensores = sensoresConEstado,
                     total = sensoresConEstado.Count,
                     activos = sensoresConEstado.Count(s => s.SimuladorActivo),
@@ -318,85 +553,41 @@ namespace ConnectedRoot.Controllers
             catch (Exception ex)
             {
                 _logger.LogError(ex, "❌ Error al obtener sensores disponibles");
-                return StatusCode(500, new { 
-                    error = $"Error al obtener sensores: {ex.Message}", 
-                    success = false 
+                return StatusCode(500, new
+                {
+                    error = $"Error al obtener sensores: {ex.Message}",
+                    success = false
                 });
             }
         }
 
-        // Método privado para generar lecturas automáticas
-        private async Task GenerarLecturaAutomatica(string sensorId)
-        {
-            try
-            {
-                // Verificar si el simulador sigue activo
-                if (!_simuladorEstado.ContainsKey(sensorId) || !_simuladorEstado[sensorId])
-                {
-                    return;
-                }
-
-                var sensor = await _mongoService.Sensores.Find(s => s.Id == sensorId).FirstOrDefaultAsync();
-                if (sensor == null) return;
-
-                // Generar lectura según el tipo de sensor
-                Lectura lectura;
-                
-                if (sensor.Tipo.ToLower().Contains("temperatura"))
-                {
-                    lectura = GenerarLecturaTemperatura(sensorId);
-                }
-                else if (sensor.Tipo.ToLower().Contains("humedad"))
-                {
-                    lectura = GenerarLecturaHumedad(sensorId);
-                }
-                else
-                {
-                    // Generar ambos tipos aleatoriamente para sensores mixtos
-                    var tipoAleatorio = _random.Next(2);
-                    lectura = tipoAleatorio == 0 ? 
-                        GenerarLecturaTemperatura(sensorId) : 
-                        GenerarLecturaHumedad(sensorId);
-                }
-
-                await _mongoService.Lecturas.InsertOneAsync(lectura);
-                
-                _logger.LogInformation("📊 [SIMULADOR] Lectura generada: {Tipo} = {Valor}{Unidad} (Sensor: {SensorId})", 
-                    lectura.Tipo, lectura.Valor, lectura.Unidad, sensorId);
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ [SIMULADOR] Error al generar lectura automática para sensor: {SensorId}", sensorId);
-            }
-        }
-
+        // Métodos de generación de lecturas (sin cambios)
         private Lectura GenerarLecturaTemperatura(string sensorId)
         {
             double temperatura;
             var random = _random.NextDouble() * 100;
 
-            // ✅ MEJORADO: Usar configuración desde appsettings
             var rangoOptimo = _configuration.GetSection("SimuladorSettings:RangoTemperatura:Optimo");
             var minOptimo = rangoOptimo.GetValue<double>("Min", 20);
             var maxOptimo = rangoOptimo.GetValue<double>("Max", 23);
 
-            if (random <= 70) // 70% - Rango ideal
+            if (random <= 70)
             {
                 temperatura = minOptimo + (_random.NextDouble() * (maxOptimo - minOptimo));
             }
-            else if (random <= 85) // 15% - Rango moderado alto
+            else if (random <= 85)
             {
                 temperatura = maxOptimo + (_random.NextDouble() * 4);
             }
-            else if (random <= 95) // 10% - Rango moderado bajo
+            else if (random <= 95)
             {
                 temperatura = (minOptimo - 5) + (_random.NextDouble() * 5);
             }
-            else if (random <= 98) // 3% - Rango extremo alto
+            else if (random <= 98)
             {
                 temperatura = 27 + (_random.NextDouble() * 8);
             }
-            else // 2% - Rango extremo bajo
+            else
             {
                 temperatura = 5 + (_random.NextDouble() * 10);
             }
@@ -416,34 +607,33 @@ namespace ConnectedRoot.Controllers
             double humedad;
             var random = _random.NextDouble() * 100;
 
-            // ✅ MEJORADO: Usar configuración desde appsettings
             var rangoOptimo = _configuration.GetSection("SimuladorSettings:RangoHumedad:Optimo");
             var minOptimo = rangoOptimo.GetValue<double>("Min", 40);
             var maxOptimo = rangoOptimo.GetValue<double>("Max", 70);
 
-            if (random <= 60) // 60% - Rango ideal
+            if (random <= 60)
             {
                 humedad = minOptimo + (_random.NextDouble() * (maxOptimo - minOptimo));
             }
-            else if (random <= 80) // 20% - Rango moderado
+            else if (random <= 80)
             {
                 var esBaja = _random.NextDouble() < 0.5;
-                humedad = esBaja ? 
-                    (minOptimo - 10) + (_random.NextDouble() * 10) : 
+                humedad = esBaja ?
+                    (minOptimo - 10) + (_random.NextDouble() * 10) :
                     maxOptimo + (_random.NextDouble() * 10);
             }
-            else if (random <= 95) // 15% - Rango subóptimo
+            else if (random <= 95)
             {
                 var esBaja = _random.NextDouble() < 0.5;
-                humedad = esBaja ? 
-                    20 + (_random.NextDouble() * 10) : 
+                humedad = esBaja ?
+                    20 + (_random.NextDouble() * 10) :
                     80 + (_random.NextDouble() * 10);
             }
-            else // 5% - Rango crítico
+            else
             {
                 var esBaja = _random.NextDouble() < 0.5;
-                humedad = esBaja ? 
-                    _random.NextDouble() * 20 : 
+                humedad = esBaja ?
+                    _random.NextDouble() * 20 :
                     90 + (_random.NextDouble() * 10);
             }
 
@@ -456,42 +646,9 @@ namespace ConnectedRoot.Controllers
                 Unidad = "%"
             };
         }
-
-        // Método para limpiar recursos al cerrar la aplicación
-        [HttpPost("limpiar")]
-        public IActionResult LimpiarRecursos()
-        {
-            try
-            {
-                _logger.LogInformation("🧹 Limpiando recursos del simulador");
-
-                lock (_lock)
-                {
-                    foreach (var timer in _timers.Values)
-                    {
-                        timer.Dispose();
-                    }
-                    _timers.Clear();
-                    _simuladorEstado.Clear();
-                }
-
-                _logger.LogInformation("✅ Recursos limpiados exitosamente");
-
-                return Ok(new { 
-                    success = true, 
-                    message = "Recursos limpiados exitosamente",
-                    timestamp = DateTime.Now
-                });
-            }
-            catch (Exception ex)
-            {
-                _logger.LogError(ex, "❌ Error al limpiar recursos");
-                return StatusCode(500, new { error = ex.Message, success = false });
-            }
-        }
     }
 
-    // DTOs para las requests
+    // DTOs
     public class IniciarSimuladorRequest
     {
         public string SensorId { get; set; } = string.Empty;

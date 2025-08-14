@@ -7,7 +7,7 @@ function crearHoja() {
   
   const hoja = document.createElement('img');
   // Ruta corregida para la imagen de la hoja
-  hoja.src = 'PNG/hoja.png';
+  hoja.src = '../PNG/Hoja.png';
   hoja.className = 'hoja';
 
   const leftOffset = Math.random() * (window.innerWidth - 100);

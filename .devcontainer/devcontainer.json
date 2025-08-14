@@ -13,7 +13,8 @@
         "mongodb.mongodb-vscode",
         "dbaeumer.vscode-eslint",
         "esbenp.prettier-vscode",
-        "ms-azuretools.vscode-docker"
+        "ms-azuretools.vscode-docker",
+        "GitHub.copilot-chat"
       ]
     }
   },
